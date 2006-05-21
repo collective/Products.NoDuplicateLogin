@@ -34,6 +34,7 @@ __author__ = "Daniel Nouri <daniel.nouri@gmail.com>"
 from urllib import quote, unquote
 
 from persistent.mapping import PersistentMapping
+from DateTime import DateTime
 from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
 from OFS.Cache import Cacheable
@@ -92,11 +93,16 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                     , 'mode'  : 'w'
                     }
                   , { 'id'    : 'session_based'
+                    , 'label' : 'Session Based'
                     , 'type'  : 'boolean'
                     , 'mode'  : 'w'
                     }
                   )
 
+    # UIDs older than three days are deleted from our storage...
+    time_to_delete_cookies = 3
+    # ... every 100th request
+    cookie_cleanup_period = 100
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
@@ -106,8 +112,10 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             self.cookie_name = cookie_name
         self.session_based = session_based
 
-        self.mapping1 = PersistentMapping() # userid : (UID, timestamp)
-        self.mapping2 = PersistentMapping() # UID : (userid, timestamp)
+        self.mapping1 = PersistentMapping() # userid : (UID, DateTime)
+        self.mapping2 = PersistentMapping() # UID : (userid, DateTime)
+
+        self.request_number = 0 # for notifyRequest
 
     security.declarePrivate('authenticateCredentials')
     def authenticateCredentials(self, credentials):
@@ -121,6 +129,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         request = self.REQUEST
         response = request['RESPONSE']
         pas_instance = self._getPAS()
+
+        self.notifyRequest(request, response)
 
         login = credentials.get('login')
         password = credentials.get('password')
@@ -144,9 +154,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                     "Someone else logged in under your name.  You have been "
                     "logged out.")
             elif existing_uid is None:
-                # This is a crazy situation.  The browser has the
-                # cookie but we don't know about it.  Let's reset our
-                # own cookie:
+                # The browser has the cookie but we don't know about
+                # it.  Let's reset our own cookie:
                 self.setCookie('')
         
         else:
@@ -159,8 +168,9 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 if self.mapping2.has_key(existing_uid[0]):
                     del self.mapping2[existing_uid[0]]
 
-            self.mapping1[login] = cookie_val, None
-            self.mapping2[cookie_val] = login, None
+            now = DateTime()
+            self.mapping1[login] = cookie_val, now
+            self.mapping2[cookie_val] = login, now
             self.setCookie(cookie_val)
             
         return None # Note that we never return anything useful
@@ -198,8 +208,27 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         for resetter_id, resetter in cred_resetters:
             resetter.resetCredentials(request, response)
 
+    security.declarePrivate('notifyRequest')
+    def notifyRequest(self, request, response):
+        """Clean up storage."""
+        self.request_number += 1
+        if self.request_number % self.cookie_cleanup_period == 0:
+            self.request_number = 0
+            expiry = DateTime() - self.time_to_delete_cookies
+
+            def cleanStorage(mapping):
+                for key, (value, time) in mapping.items():
+                    if time < expiry:
+                        del mapping[key]
+
+            for mapping in self.mapping1, self.mapping2:
+                cleanStorage(mapping)
+
     security.declarePrivate('getCookie')
     def getCookie(self):
+        """Helper to retrieve the cookie value from either cookie or
+        session, depending on policy.
+        """
         request = self.REQUEST
         response = request['RESPONSE']
         
@@ -211,6 +240,11 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     security.declarePrivate('setCookie')
     def setCookie(self, value):
+        """Helper to set the cookie value to either cookie or
+        session, depending on policy.
+
+        o Setting to '' means delete.
+        """
         value = quote(value)
         request = self.REQUEST
         response = request['RESPONSE']

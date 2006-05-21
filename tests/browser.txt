@@ -170,3 +170,37 @@ Now the second browser is logged out when it tries to access a page:
   >>> "Log out" in browser2.contents
   False
 
+Storage cleanup
+---------------
+
+This is where the functional part of this test ends.
+
+Our plugin needs to cleanup its storage every once in a while.  By
+default, it cleans up the storage every 100th request where it deletes
+information that is older than three days.
+
+Let's step into the innards and see if the storage is being kept tidy:
+
+  >>> plugin = self.portal.acl_users.noduplicate
+  >>> plugin.time_to_delete_cookies
+  3
+  >>> plugin.cookie_cleanup_period
+  100
+
+For the cleanup to be triggered for our values, we need to make the
+plugin believe that three days have passed since the last access.
+Before that, we also need to fake the ``request_number`` instance
+variable, which stores the number of requests since the last cleanup.
+
+  >>> plugin.request_number = 99
+  >>> from Products.NoDuplicateLogin import plugin as plugin_module
+  >>> future = plugin_module.DateTime() + 4
+  >>> plugin_module.DateTime = lambda:future
+
+The next request will cause our cookies to be flushed:
+
+  >>> len(plugin.mapping1), len(plugin.mapping2)
+  (1, 1)
+  >>> browser1.open('http://nohost/plone')
+  >>> len(plugin.mapping1), len(plugin.mapping2)
+  (0, 0)
