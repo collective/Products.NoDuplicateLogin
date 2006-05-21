@@ -143,7 +143,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 request['portal_status_message'] = (
                     "Someone else logged in under your name.  You have been "
                     "logged out.")
-            else:
+            elif existing_uid is None:
                 # This is a crazy situation.  The browser has the
                 # cookie but we don't know about it.  Let's reset our
                 # own cookie:
