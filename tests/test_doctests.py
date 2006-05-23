@@ -48,7 +48,6 @@ from Products.PloneTestCase import PloneTestCase
 PloneTestCase.installProduct('PluginRegistry')
 PloneTestCase.installProduct('PluggableAuthService')
 PloneTestCase.installProduct('PlonePAS')
-PloneTestCase.installProduct('PasswordResetTool')
 PloneTestCase.installProduct('NoDuplicateLogin')
 PloneTestCase.setupPloneSite(products=['PlonePAS'])
 

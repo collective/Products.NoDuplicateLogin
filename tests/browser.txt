@@ -60,7 +60,7 @@ Fight!!!
 Very good.  Now that everything is in place, we can start two seperate
 browser sessions:
 
-  >>> from Products.Five.testbrowser import Browser # requires Zope >= 2.9.3
+  >>> from Products.Five.testbrowser import Browser # requires Zope >= 2.9.4
   >>> browser1 = Browser()
   >>> browser1.open('http://nohost/plone/')
   >>> browser1.getLink('Log in').click()
@@ -197,7 +197,8 @@ variable, which stores the number of requests since the last cleanup.
   >>> future = plugin_module.DateTime() + 4
   >>> plugin_module.DateTime = lambda:future
 
-The next request will cause our cookies to be flushed:
+The next request will cause our cookies to be flushed, because the
+plugin thinks it's four days in the future now:
 
   >>> len(plugin.mapping1), len(plugin.mapping2)
   (1, 1)
