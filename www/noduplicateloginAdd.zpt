@@ -33,7 +33,7 @@ time, by forcing a logout of all but one user.
   <tr>
     <td align="left" valign="top">
     <div class="form-optional">
-    Cookie Name
+    Cookie Name (optional)
     </div>
     </td>
     <td align="left" valign="top">
@@ -41,9 +41,14 @@ time, by forcing a logout of all but one user.
     </td>
   </tr>
   <tr>
-    <td>
-      <input type="hidden" name="active:int:default" value="0" />
-      <input type="checkbox" name="active:int" value="1" />
+    <td align="left" valign="top">
+      <div class="form-optional">
+        Session based?
+      </div>
+    </td>
+    <td align="left" valign="top">
+      <input type="hidden" name="session_based:int:default" value="0" />
+      <input type="checkbox" name="session_based:int" value="1" />
     </td>
   </tr>
   <tr>
