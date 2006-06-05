@@ -60,7 +60,7 @@ Fight!!!
 Very good.  Now that everything is in place, we can start two seperate
 browser sessions:
 
-  >>> from Products.Five.testbrowser import Browser # requires Zope >= 2.9.4
+  >>> from Products.Five.testbrowser import Browser # requires Five >= 1.4
   >>> browser1 = Browser()
   >>> browser1.open('http://nohost/plone/')
   >>> browser1.getLink('Log in').click()
