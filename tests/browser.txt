@@ -69,7 +69,7 @@ browser sessions:
   >>> browser1.getControl(name='__ac_name').value = 'test_user_1_'
   >>> browser1.getControl(name='__ac_password').value = 'secret'
   >>> browser1.getControl(name='submit').click()
-  >>> "You are now logged in" in browser1.contents
+  >>> "Log out" in browser1.contents
   True
 
 At this point, we have two cookies:
@@ -104,7 +104,7 @@ second:
   >>> browser2.getControl(name='__ac_name').value = 'test_user_1_'
   >>> browser2.getControl(name='__ac_password').value = 'secret'
   >>> browser2.getControl(name='submit').click()
-  >>> "You are now logged in" in browser2.contents
+  >>> "Log out" in browser2.contents
   True
   >>> printCookies(browser2) # doctest: +ELLIPSIS
   __ac="..."
@@ -143,7 +143,7 @@ browser will kick the second:
   >>> browser1.getControl(name='__ac_name').value = 'test_user_1_'
   >>> browser1.getControl(name='__ac_password').value = 'secret'
   >>> browser1.getControl(name='submit').click()
-  >>> "You are now logged in" in browser1.contents
+  >>> "Log out" in browser1.contents
   True
   >>> cookies = getCookies(browser1)
   >>> len(cookies)
