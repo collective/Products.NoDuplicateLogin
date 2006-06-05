@@ -1,26 +1,15 @@
 NoDuplicateLogin
 
-Copyright (c) 2006, BlueDynamics, Klein & Partner KEG, Innsbruck,
-Austria, and the respective authors. All rights reserved.
-
-Author: Daniel Nouri <daniel.nouri@gmail.com>
-
-License BSD-ish
-
-This plugin will reject multiple logins with the same user at the same
-time.  That is, it ensures that only one browser may be logged with
-the same userid at one time.
-
-This plugin is for use in a Pluggable Authentication Service user
-folder.
+  This Pluggable Authentication Service (PAS) plugin will reject multiple 
+  logins with the same user at the same time.  That is, it ensures that 
+  only one browser may be logged with the same userid at one time.
 
 Requires:
 
  - PluggableAuthService and its dependencies
 
-Optional:
+ - (optional) PlonePAS and its dependencies
 
- - PlonePAS and its dependencies
 
 Installation
 
@@ -30,13 +19,14 @@ Installation
   In your PAS 'acl_users', select 'NoDuplicateLogin' from the add
   list.  Give it an id and title, and push the add button.
 
-  Enable the Authentication plugin and the Credentials Reset
+  Enable the 'Authentication' and the 'Credentials Reset' plugin
   interfaces in the after-add screen.
 
   Rearrange the order of your 'Authentication Plugins' so that the
   'NoDuplicateLogin' plugin is at the top.
 
   That's it! Test it out.
+
 
 Implementation
 
@@ -65,6 +55,17 @@ Implementation
   the same cookie value in both browsers.  Fortunately, the plugin
   comes with an experimental session-based mechanism, which you can
   activate by ticking "session based" in the plugin's properties form.
+
+
+Copyright, License, Author
+
+  Copyright (c) 2006, BlueDynamics, Klein & Partner KEG, Innsbruck,
+  Austria, and the respective authors. All rights reserved.
+ 
+  Author: Daniel Nouri <daniel.nouri@gmail.com>
+
+  License BSD-ish, see LICENSE.txt
+
 
 Credits
 
