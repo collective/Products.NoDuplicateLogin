@@ -46,15 +46,15 @@ Implementation
   What happens when Anna clicks on a link on the site?  The plugin
   sees that Anna has our cookie but that it differs from the cookie
   value that it remembered (Karl's browser has that cookie value).
-  Now the cookie logs out Karl; Karl is no longer authenticated and he
-  sees the message "Someone else logged in under your name".
+  Anna is logged out but the plugin and sees the message "Someone else
+  logged in under your name".
 
   The default implementation uses a cookie as described above.  This
   should be good enough in most cases, however, it means that you can
   easily hack the mechanism if you know how it works by simply setting
-  the same cookie value in both browsers.  Fortunately, the plugin
-  comes with an experimental session-based mechanism, which you can
-  activate by ticking "session based" in the plugin's properties form.
+  the same cookie value in both browsers.  The plugin comes with an
+  experimental session-based mechanism, which you can activate by
+  ticking "session based" in the plugin's properties form.
 
 
 Copyright, License, Author
