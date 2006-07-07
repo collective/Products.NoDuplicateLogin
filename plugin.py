@@ -33,7 +33,7 @@ __author__ = "Daniel Nouri <daniel.nouri@gmail.com>"
 
 from urllib import quote, unquote
 
-from persistent.mapping import PersistentMapping
+from BTrees.OOBTree import OOBTree
 from DateTime import DateTime
 from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
@@ -101,8 +101,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     # UIDs older than three days are deleted from our storage...
     time_to_delete_cookies = 3
-    # ... every 100th request
-    cookie_cleanup_period = 100
+    # ... every 1000th request
+    cookie_cleanup_period = 1000
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
@@ -112,8 +112,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             self.cookie_name = cookie_name
         self.session_based = session_based
 
-        self.mapping1 = PersistentMapping() # userid : (UID, DateTime)
-        self.mapping2 = PersistentMapping() # UID : (userid, DateTime)
+        self.mapping1 = OOBTree() # userid : (UID, DateTime)
+        self.mapping2 = OOBTree() # UID : (userid, DateTime)
 
         self.request_number = 0 # for notifyRequest
 
@@ -213,6 +213,11 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         """Clean up storage."""
         self.request_number += 1
         if self.request_number % self.cookie_cleanup_period == 0:
+            # No idea if this is just voodoo, but it might help
+            self._p_jar.sync()
+            if self.request_number == 0:
+                return
+
             self.request_number = 0
             expiry = DateTime() - self.time_to_delete_cookies
 

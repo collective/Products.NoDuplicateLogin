@@ -185,14 +185,14 @@ Let's step into the innards and see if the storage is being kept tidy:
   >>> plugin.time_to_delete_cookies
   3
   >>> plugin.cookie_cleanup_period
-  100
+  1000
 
 For the cleanup to be triggered for our values, we need to make the
 plugin believe that three days have passed since the last access.
 Before that, we also need to fake the ``request_number`` instance
 variable, which stores the number of requests since the last cleanup.
 
-  >>> plugin.request_number = 99
+  >>> plugin.request_number = 999
   >>> from Products.NoDuplicateLogin import plugin as plugin_module
   >>> future = plugin_module.DateTime() + 4
   >>> plugin_module.DateTime = lambda:future
