@@ -1,0 +1,200 @@
+Functional tests for NoDuplicateLogin
+=====================================
+
+Introduction
+------------
+
+For this test, we're going to use ``zope.testbrowser``.  This package
+is included in Zope 3.2 and a compatibility layer for Zope 2 is
+provided since Zope 2.9.3.  (Yes, you need 2.9.3 for this test to
+run.)  Also, we require Plone (2.5) to be installed:
+
+
+First, let's setup some convenience functions:
+
+  >>> from pprint import pprint
+  >>> def getCookies(testbrowser):
+  ...     return testbrowser.mech_browser._ua_handlers['_cookies'].cookiejar
+
+  >>> def printCookies(testbrowser):
+  ...     for cookie in getCookies(testbrowser):
+  ...         print "%s=%s" % (cookie.name, cookie.value)
+
+Setup
+-----
+
+Next, we must set up our plugin in the User Folder:
+
+
+  >>> from Products.PluggableAuthService.interfaces.plugins \
+  ...     import IAuthenticationPlugin, ICredentialsResetPlugin
+
+Let's create the NoDuplicateLogin object inside the User Folder:
+
+  >>> userfolder = self.portal.acl_users
+  >>> dispatcher = userfolder.manage_addProduct['NoDuplicateLogin']
+  >>> dispatcher.manage_addNoDuplicateLogin('noduplicate',
+  ...                                       cookie_name='koekje')
+  >>> userfolder.noduplicate
+  <NoDuplicateLogin at /plone/acl_users/noduplicate>
+
+Now we need to enable our plugin, which works like so:
+
+  >>> plugins = userfolder._getOb('plugins')
+  >>> plugins.activatePlugin(IAuthenticationPlugin, 'noduplicate')
+  >>> plugins.activatePlugin(ICredentialsResetPlugin, 'noduplicate')
+  >>> pprint(plugins.listPlugins(IAuthenticationPlugin))
+  [('source_users', <UserManager at /plone/acl_users/source_users>),
+   ('noduplicate', <NoDuplicateLogin at /plone/acl_users/noduplicate>)]
+
+Remember that the installation requires us to move the plugin to the
+topmost position for authentication plugins:
+
+  >>> plugins.movePluginsUp(IAuthenticationPlugin,
+  ...                       ('noduplicate', 'source_users'))
+
+
+Fight!!!
+--------
+
+Very good.  Now that everything is in place, we can start two seperate
+browser sessions:
+
+  >>> from Products.Five.testbrowser import Browser # requires Five >= 1.4
+  >>> browser1 = Browser()
+  >>> browser1.open('http://nohost/plone/')
+  >>> browser1.getLink('Log in').click()
+  >>> browser1.url
+  'http://nohost/plone/login_form'
+  >>> browser1.getControl(name='__ac_name').value = 'test_user_1_'
+  >>> browser1.getControl(name='__ac_password').value = 'secret'
+  >>> browser1.getControl(name='submit').click()
+  >>> "Log out" in browser1.contents
+  True
+
+At this point, we have two cookies:
+
+  >>> printCookies(browser1) # doctest: +ELLIPSIS
+  __ac="..."
+  koekje="..."
+
+Let's navigate around a bit just to make sure we're logged in on the
+next page still:
+
+  >>> browser1.getLink('News').click()
+  >>> browser1.url
+  'http://nohost/plone/news'
+  >>> "Log out" in browser1.contents
+  True
+
+OK, enough exercises.  Let's start up the other browser, see that
+we're not logged in, check the first browser again, and login with the
+second:
+
+  >>> browser2 = Browser()
+  >>> browser2.open('http://nohost/plone/')
+  >>> "Log out" in browser2.contents
+  False
+  >>> browser1.reload()
+  >>> "Log out" in browser1.contents
+  True
+  >>> browser2.getLink('Log in').click()
+  >>> browser2.url
+  'http://nohost/plone/login_form'
+  >>> browser2.getControl(name='__ac_name').value = 'test_user_1_'
+  >>> browser2.getControl(name='__ac_password').value = 'secret'
+  >>> browser2.getControl(name='submit').click()
+  >>> "Log out" in browser2.contents
+  True
+  >>> printCookies(browser2) # doctest: +ELLIPSIS
+  __ac="..."
+  koekje="..."
+
+What happens when the first browser opens another page?  The next page
+will display the message "Someone else logged in under your name", and
+the subsequent page will have the anonymous view:
+
+  >>> printCookies(browser1) # doctest: +ELLIPSIS
+  __ac="..."
+  koekje="..."
+  >>> browser1.reload()
+  >>> "Someone else logged in under your name" in browser1.contents
+  True
+  >>> len(getCookies(browser1))
+  0
+  >>> browser1.open('http://nohost/plone/news')
+  >>> "Log out" in browser1.contents
+  False
+
+And the other browser?  It's still logged in:
+
+  >>> browser2.open('http://nohost/plone/')
+  >>> "Log out" in browser2.contents
+  True
+  >>> len(getCookies(browser2))
+  2
+
+Now let's do the login game another time around.  This time the first
+browser will kick the second:
+
+  >>> browser1.getLink('Log in').click()
+  >>> browser1.url
+  'http://nohost/plone/login_form'
+  >>> browser1.getControl(name='__ac_name').value = 'test_user_1_'
+  >>> browser1.getControl(name='__ac_password').value = 'secret'
+  >>> browser1.getControl(name='submit').click()
+  >>> "Log out" in browser1.contents
+  True
+  >>> cookies = getCookies(browser1)
+  >>> len(cookies)
+  2
+
+A bit of browsing, to make sure it works on the next request:
+
+  >>> browser1.getLink('News').click()
+  >>> browser1.url
+  'http://nohost/plone/news'
+  >>> "Log out" in browser1.contents
+  True
+
+Now the second browser is logged out when it tries to access a page:
+
+  >>> len(getCookies(browser2))
+  2
+  >>> browser2.reload()
+  >>> len(getCookies(browser2))
+  0
+  >>> "Someone else logged in under your name" in browser2.contents
+  True
+  >>> browser2.open('http://nohost/plone/news')
+  >>> "Log out" in browser2.contents
+  False
+
+Storage cleanup
+---------------
+
+This is where the functional part of this test ends.
+
+Every once in a while the storage should be cleaned up.  Otherwise it
+will grow... grow very large.  To do this, you must call 'cleanUp' on
+the plugin.  The storage will then clean up entries older than
+'plugin.time_to_delete_cookies' days:
+
+  >>> plugin = self.portal.acl_users.noduplicate
+  >>> plugin.time_to_delete_cookies
+  3
+  >>> plugin.cleanUp()
+  '0 entries deleted.'
+
+Let's fake that we're four days in the future:
+
+  >>> from Products.NoDuplicateLogin import plugin as plugin_module
+  >>> future = plugin_module.DateTime() + 4
+  >>> plugin_module.DateTime = lambda:future
+  >>> len(plugin.mapping1), len(plugin.mapping2)
+  (1, 1)
+  >>> plugin.cleanUp()
+  '1 entries deleted.'
+  >>> len(plugin.mapping1), len(plugin.mapping2)
+  (0, 0)
+
