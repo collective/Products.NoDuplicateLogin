@@ -39,10 +39,12 @@ from AccessControl import ClassSecurityInfo, Permissions
 from Globals import InitializeClass
 from OFS.Cache import Cacheable
 
+from Products.CMFPlone import PloneMessageFactory as _
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
+from plone.session.interfaces import ISessionSource
 
 from utils import uuid
 
@@ -112,6 +114,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         self.mapping1 = OOBTree() # userid : (UID, DateTime)
         self.mapping2 = OOBTree() # UID : (userid, DateTime)
 
+        self.plone_session = None #for plone.session
+
     security.declarePrivate('authenticateCredentials')
     def authenticateCredentials(self, credentials):
         """See IAuthenticationPlugin.
@@ -128,8 +132,20 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         login = credentials.get('login')
         password = credentials.get('password')
 
-        if None in (login, password, pas_instance):
+        if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
             return None
+        else:
+            #plone.session complicates our life, this extracted from their
+            #plugin
+            session_source = ISessionSource(pas_instance.plugins.session)
+            identifier = credentials.get("cookie","")
+            if session_source.verifyIdentifier(identifier):
+                login = session_source.extractUserId(identifier)
+                self.plone_session = True
+            else:
+                return None
+
+
 
         cookie_val = self.getCookie()
         if cookie_val:
@@ -143,9 +159,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 # will eventually call our own resetCredentials which
                 # will cleanup our own cookie.
                 self.resetAllCredentials(request, response)
-                request['portal_status_message'] = (
-                    "Someone else logged in under your name.  You have been "
-                    "logged out.")
+                pas_instance.plone_utils.addPortalMessage(_(u"Someone else logged in under your name.  You have been \
+                    logged out"), "error")
             elif existing_uid is None:
                 # The browser has the cookie but we don't know about
                 # it.  Let's reset our own cookie:
