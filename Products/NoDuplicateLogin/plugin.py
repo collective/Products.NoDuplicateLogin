@@ -44,7 +44,7 @@ from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
-from plone.session.interfaces import ISessionSource
+#from plone.session.interfaces import ISessionSource
 
 from utils import uuid
 
@@ -135,15 +135,18 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
             return None
         else:
-            #plone.session complicates our life, this extracted from their
-            #plugin
-            session_source = ISessionSource(pas_instance.plugins.session)
-            identifier = credentials.get("cookie","")
-            if session_source.verifyIdentifier(identifier):
-                login = session_source.extractUserId(identifier)
-                self.plone_session = True
-            else:
-                return None
+            return None
+
+# XXX Can't do this anymore
+#            #plone.session complicates our life, this extracted from their
+#            #plugin
+#            session_source = ISessionSource(pas_instance.plugins.session)
+#            identifier = credentials.get("cookie","")
+#            if session_source.verifyIdentifier(identifier):
+#                login = session_source.extractUserId(identifier)
+#                self.plone_session = True
+#            else:
+#                return None
 
 
 
