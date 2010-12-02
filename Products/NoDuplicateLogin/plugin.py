@@ -135,20 +135,30 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
             return None
         else:
-            return None
 
-# XXX Can't do this anymore
-#            #plone.session complicates our life, this extracted from their
-#            #plugin
-#            session_source = ISessionSource(pas_instance.plugins.session)
-#            identifier = credentials.get("cookie","")
-#            if session_source.verifyIdentifier(identifier):
-#                login = session_source.extractUserId(identifier)
-#                self.plone_session = True
-#            else:
-#                return None
+            # XXX Can't do this in Plone 4
+            #session_source = ISessionSource(pas_instance.plugins.session)
+            #identifier = credentials.get("cookie","")
+            #if session_source.verifyIdentifier(identifier):
+            #    login = session_source.extractUserId(identifier)
+            #    self.plone_session = True
+            #else:
+            #    return None
 
+            ticket=credentials["cookie"]
+            ticket_data = self._validateTicket(ticket)
 
+            if ticket_data is None:
+                return None
+
+            (digest, userid, tokens, user_data, timestamp) = ticket_data
+            info=pas_instance._verifyUser(pas_instance.plugins, user_id=userid)
+
+            if info is None:
+                return None
+
+            self.plone_session = True
+            login = info['login']
 
         cookie_val = self.getCookie()
         if cookie_val:
