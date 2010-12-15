@@ -35,16 +35,15 @@ from urllib import quote, unquote
 
 from BTrees.OOBTree import OOBTree
 from DateTime import DateTime
-from AccessControl import ClassSecurityInfo, Permissions
+from AccessControl import ClassSecurityInfo
 from Globals import InitializeClass
 from OFS.Cache import Cacheable
 
-from Products.CMFPlone import PloneMessageFactory as _
+
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
-#from plone.session.interfaces import ISessionSource
 
 from utils import uuid
 
@@ -102,6 +101,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     # UIDs older than three days are deleted from our storage...
     time_to_delete_cookies = 3
+    # ... every 1000th request
+    cookie_cleanup_period = 1000
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
@@ -114,7 +115,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         self.mapping1 = OOBTree() # userid : (UID, DateTime)
         self.mapping2 = OOBTree() # UID : (userid, DateTime)
 
-        self.plone_session = None #for plone.session
+        self.request_number = 0 # for notifyRequest
 
     security.declarePrivate('authenticateCredentials')
     def authenticateCredentials(self, credentials):
@@ -129,36 +130,13 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         response = request['RESPONSE']
         pas_instance = self._getPAS()
 
+        self.notifyRequest(request, response)
+
         login = credentials.get('login')
         password = credentials.get('password')
 
-        if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
+        if None in (login, password, pas_instance):
             return None
-        else:
-
-            # XXX Can't do this in Plone 4
-            #session_source = ISessionSource(pas_instance.plugins.session)
-            #identifier = credentials.get("cookie","")
-            #if session_source.verifyIdentifier(identifier):
-            #    login = session_source.extractUserId(identifier)
-            #    self.plone_session = True
-            #else:
-            #    return None
-
-            ticket=credentials["cookie"]
-            ticket_data = self._validateTicket(ticket)
-
-            if ticket_data is None:
-                return None
-
-            (digest, userid, tokens, user_data, timestamp) = ticket_data
-            info=pas_instance._verifyUser(pas_instance.plugins, user_id=userid)
-
-            if info is None:
-                return None
-
-            self.plone_session = True
-            login = info['login']
 
         cookie_val = self.getCookie()
         if cookie_val:
@@ -172,8 +150,9 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 # will eventually call our own resetCredentials which
                 # will cleanup our own cookie.
                 self.resetAllCredentials(request, response)
-                pas_instance.plone_utils.addPortalMessage(_(u"Someone else logged in under your name.  You have been \
-                    logged out"), "error")
+                request['portal_status_message'] = (
+                    "Someone else logged in under your name.  You have been "
+                    "logged out.")
             elif existing_uid is None:
                 # The browser has the cookie but we don't know about
                 # it.  Let's reset our own cookie:
@@ -229,26 +208,26 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         for resetter_id, resetter in cred_resetters:
             resetter.resetCredentials(request, response)
 
-    security.declareProtected(Permissions.manage_users, 'cleanUp')
-    def cleanUp(self):
-        """Clean up storage.
+    security.declarePrivate('notifyRequest')
+    def notifyRequest(self, request, response):
+        """Clean up storage."""
+        self.request_number += 1
+        if self.request_number % self.cookie_cleanup_period == 0:
+            # No idea if this is just voodoo, but it might help
+            self._p_jar.sync()
+            if self.request_number == 0:
+                return
 
-        Call this periodically through the web to clean up old entries
-        in the storage."""
-        expiry = DateTime() - self.time_to_delete_cookies
+            self.request_number = 0
+            expiry = DateTime() - self.time_to_delete_cookies
 
-        def cleanStorage(mapping):
-            count = 0
-            for key, (value, time) in mapping.items():
-                if time < expiry:
-                    del mapping[key]
-                    count += 1
-            return count
+            def cleanStorage(mapping):
+                for key, (value, time) in mapping.items():
+                    if time < expiry:
+                        del mapping[key]
 
-        for mapping in self.mapping1, self.mapping2:
-            count = cleanStorage(mapping)
-        
-        return "%s entries deleted." % count
+            for mapping in self.mapping1, self.mapping2:
+                cleanStorage(mapping)
 
     security.declarePrivate('getCookie')
     def getCookie(self):
