@@ -130,7 +130,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             return None
 
         cookie_val = self.getCookie()
-        if cookie_val:
+
+        if cookie_val and 'mapping1' in session.keys():
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
             # logout.
@@ -153,15 +154,16 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # When no cookie is present, we generate one, store it and
             # set it in the response:
             cookie_val = uuid()
+
             # do some cleanup in our mappings
-            existing_uid = session['mapping1'].get(login)
-            if existing_uid:
-                if session['mapping2'].has_key(existing_uid[0]):
-                    del session['mapping2'][existing_uid[0]]
+            #existing_uid = session['mapping1'].get(login)
+            #if existing_uid:
+            #    if session['mapping2'].has_key(existing_uid[0]):
+            #        del session['mapping2'][existing_uid[0]]
 
             now = DateTime()
-            session['mapping1'][login] = cookie_val, now
-            session['mapping2'][cookie_val] = login, now
+            session['mapping1'] = {'login': (cookie_val, now)}
+            session['mapping2'] = {'cookie_val': (login, now)}
             self.setCookie(cookie_val)
             
         return None # Note that we never return anything useful
