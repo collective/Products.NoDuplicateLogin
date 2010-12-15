@@ -106,10 +106,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         if cookie_name:
             self.cookie_name = cookie_name
 
-        self.mapping1 = OOBTree() # userid : (UID, DateTime)
-        self.mapping2 = OOBTree() # UID : (userid, DateTime)
-
-        self.request_number = 0 # for notifyRequest
 
     security.declarePrivate('authenticateCredentials')
     def authenticateCredentials(self, credentials):
@@ -121,16 +117,16 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
           ILoginPasswordExtractionPlugin.
         """
 
+
+
         request = self.REQUEST
         response = request['RESPONSE']
+        session = request.SESSION
         pas_instance = self._getPAS()
 
-        self.notifyRequest(request, response)
+        login = credentials.get('cookie')
 
-        login = credentials.get('login')
-        password = credentials.get('password')
-
-        if None in (login, password, pas_instance):
+        if None in (login, pas_instance):
             return None
 
         cookie_val = self.getCookie()
@@ -138,7 +134,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
             # logout.
-            existing_uid = self.mapping1.get(login)
+            existing_uid = session['mapping1'].get(login)
             if existing_uid and cookie_val != existing_uid[0]:
                 # The cookies values differ, we want to logout the
                 # user by calling resetCredentials.  Note that this
@@ -158,14 +154,14 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # set it in the response:
             cookie_val = uuid()
             # do some cleanup in our mappings
-            existing_uid = self.mapping1.get(login)
+            existing_uid = session['mapping1'].get(login)
             if existing_uid:
-                if self.mapping2.has_key(existing_uid[0]):
-                    del self.mapping2[existing_uid[0]]
+                if session['mapping2'].has_key(existing_uid[0]):
+                    del session['mapping2'][existing_uid[0]]
 
             now = DateTime()
-            self.mapping1[login] = cookie_val, now
-            self.mapping2[cookie_val] = login, now
+            session['mapping1'][login] = cookie_val, now
+            session['mapping2'][cookie_val] = login, now
             self.setCookie(cookie_val)
             
         return None # Note that we never return anything useful
@@ -176,12 +172,13 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         """See ICredentialsResetPlugin.
         """
         cookie_val = self.getCookie()
+        session = self.REQUEST.SESSION
         if cookie_val:
-            loginanddate = self.mapping2.get(cookie_val)
+            loginanddate = session['mapping2'].get(cookie_val)
             if loginanddate:
                 login, date = loginanddate
-                del self.mapping2[cookie_val]
-                existing_uid = self.mapping1.get(login)
+                del session['mapping2'][cookie_val]
+                existing_uid = self['mapping1'].get(login)
                 if existing_uid:
                     assert existing_uid[0] != cookie_val
 
@@ -203,26 +200,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         for resetter_id, resetter in cred_resetters:
             resetter.resetCredentials(request, response)
 
-    security.declarePrivate('notifyRequest')
-    def notifyRequest(self, request, response):
-        """Clean up storage."""
-        self.request_number += 1
-        if self.request_number % self.cookie_cleanup_period == 0:
-            # No idea if this is just voodoo, but it might help
-            self._p_jar.sync()
-            if self.request_number == 0:
-                return
-
-            self.request_number = 0
-            expiry = DateTime() - self.time_to_delete_cookies
-
-            def cleanStorage(mapping):
-                for key, (value, time) in mapping.items():
-                    if time < expiry:
-                        del mapping[key]
-
-            for mapping in self.mapping1, self.mapping2:
-                cleanStorage(mapping)
 
     security.declarePrivate('getCookie')
     def getCookie(self):
