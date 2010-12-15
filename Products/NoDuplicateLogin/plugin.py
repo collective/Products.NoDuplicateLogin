@@ -57,13 +57,11 @@ def manage_addNoDuplicateLogin(dispatcher,
                                id,
                                title=None,
                                cookie_name='',
-                               session_based=False,
                                REQUEST=None):
     """Add a NoDuplicateLogin plugin to a Pluggable Auth Service."""
 
     obj = NoDuplicateLogin(id, title,
-                           cookie_name=cookie_name,
-                           session_based=session_based)
+                           cookie_name=cookie_name)
     dispatcher._setObject(obj.getId(), obj)
 
     if REQUEST is not None:
@@ -92,11 +90,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                     , 'type'  : 'string'
                     , 'mode'  : 'w'
                     }
-                  , { 'id'    : 'session_based'
-                    , 'label' : 'Session Based'
-                    , 'type'  : 'boolean'
-                    , 'mode'  : 'w'
-                    }
                   )
 
     # UIDs older than three days are deleted from our storage...
@@ -106,13 +99,12 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     _dont_swallow_my_exceptions = True
 
-    def __init__(self, id, title=None, cookie_name='', session_based=False):
+    def __init__(self, id, title=None, cookie_name=''):
         self._id = self.id = id
         self.title = title
 
         if cookie_name:
             self.cookie_name = cookie_name
-        self.session_based = session_based
 
         self.mapping1 = OOBTree() # userid : (UID, DateTime)
         self.mapping2 = OOBTree() # UID : (userid, DateTime)
@@ -128,6 +120,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         o We expect the credentials to be those returned by
           ILoginPasswordExtractionPlugin.
         """
+
         request = self.REQUEST
         response = request['RESPONSE']
         pas_instance = self._getPAS()
@@ -233,22 +226,16 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     security.declarePrivate('getCookie')
     def getCookie(self):
-        """Helper to retrieve the cookie value from either cookie or
-        session, depending on policy.
+        """Helper to retrieve the cookie value 
         """
         request = self.REQUEST
         response = request['RESPONSE']
-        
-        if self.session_based:
-            cookie = request.SESSION.get(self.cookie_name, '')
-        else:
-            cookie = request.get(self.cookie_name, '')
+        cookie = request.SESSION.get(self.cookie_name, '')
         return unquote(cookie)
 
     security.declarePrivate('setCookie')
     def setCookie(self, value):
-        """Helper to set the cookie value to either cookie or
-        session, depending on policy.
+        """Helper to set the cookie value 
 
         o Setting to '' means delete.
         """
@@ -256,13 +243,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         request = self.REQUEST
         response = request['RESPONSE']
 
-        if self.session_based:
-            request.SESSION.set(self.cookie_name, value)
-        else:
-            if value:
-                response.setCookie(self.cookie_name, value, path='/')
-            else:
-                response.expireCookie(self.cookie_name, path='/')
+        request.SESSION.set(self.cookie_name, value)
 
 
 classImplements(NoDuplicateLogin,

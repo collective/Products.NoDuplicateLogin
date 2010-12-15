@@ -42,17 +42,6 @@ time, by forcing a logout of all but one user.
   </tr>
   <tr>
     <td align="left" valign="top">
-      <div class="form-optional">
-        Session based?
-      </div>
-    </td>
-    <td align="left" valign="top">
-      <input type="hidden" name="session_based:int:default" value="0" />
-      <input type="checkbox" name="session_based:int" value="1" />
-    </td>
-  </tr>
-  <tr>
-    <td align="left" valign="top">
     </td>
     <td align="left" valign="top">
     <div class="form-element">
