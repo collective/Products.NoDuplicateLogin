@@ -104,6 +104,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
     # ... every 1000th request
     cookie_cleanup_period = 1000
 
+    _dont_swallow_my_exceptions = True
+
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
         self.title = title
