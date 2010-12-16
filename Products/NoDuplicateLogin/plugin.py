@@ -133,6 +133,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         password = credentials.get('password')
 
         if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
+            # In other words, if we are basic auth'ing in the ZMI do nothing.
             return None
         else:
             #plone.session complicates our life, this extracted from their
