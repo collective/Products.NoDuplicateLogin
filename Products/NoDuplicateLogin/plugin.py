@@ -35,15 +35,16 @@ from urllib import quote, unquote
 
 from BTrees.OOBTree import OOBTree
 from DateTime import DateTime
-from AccessControl import ClassSecurityInfo
+from AccessControl import ClassSecurityInfo, Permissions
 from Globals import InitializeClass
 from OFS.Cache import Cacheable
 
-
+from Products.CMFPlone import PloneMessageFactory as _
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
+from plone.session.interfaces import ISessionSource
 
 from utils import uuid
 
@@ -57,11 +58,13 @@ def manage_addNoDuplicateLogin(dispatcher,
                                id,
                                title=None,
                                cookie_name='',
+                               session_based=False,
                                REQUEST=None):
     """Add a NoDuplicateLogin plugin to a Pluggable Auth Service."""
 
     obj = NoDuplicateLogin(id, title,
-                           cookie_name=cookie_name)
+                           cookie_name=cookie_name,
+                           session_based=session_based)
     dispatcher._setObject(obj.getId(), obj)
 
     if REQUEST is not None:
@@ -90,22 +93,28 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                     , 'type'  : 'string'
                     , 'mode'  : 'w'
                     }
+                  , { 'id'    : 'session_based'
+                    , 'label' : 'Session Based'
+                    , 'type'  : 'boolean'
+                    , 'mode'  : 'w'
+                    }
                   )
 
     # UIDs older than three days are deleted from our storage...
     time_to_delete_cookies = 3
-    # ... every 1000th request
-    cookie_cleanup_period = 1000
 
-    _dont_swallow_my_exceptions = True
-
-    def __init__(self, id, title=None, cookie_name=''):
+    def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
         self.title = title
 
         if cookie_name:
             self.cookie_name = cookie_name
+        self.session_based = session_based
 
+        self.mapping1 = OOBTree() # userid : (UID, DateTime)
+        self.mapping2 = OOBTree() # UID : (userid, DateTime)
+
+        self.plone_session = None #for plone.session
 
     security.declarePrivate('authenticateCredentials')
     def authenticateCredentials(self, credentials):
@@ -116,56 +125,62 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         o We expect the credentials to be those returned by
           ILoginPasswordExtractionPlugin.
         """
-
-
-
         request = self.REQUEST
         response = request['RESPONSE']
-        session = request.SESSION
         pas_instance = self._getPAS()
 
-        login = credentials.get('cookie')
+        login = credentials.get('login')
+        password = credentials.get('password')
 
-        if None in (login, pas_instance):
+        if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
             return None
+        else:
+            #plone.session complicates our life, this extracted from their
+            #plugin
+            session_source = ISessionSource(pas_instance.plugins.session)
+            identifier = credentials.get("cookie","")
+            if session_source.verifyIdentifier(identifier):
+                login = session_source.extractUserId(identifier)
+                self.plone_session = True
+            else:
+                return None
+
+
 
         cookie_val = self.getCookie()
-
-        if cookie_val and 'mapping1' in session.keys():
+        if cookie_val:
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
             # logout.
-            existing_uid = session['mapping1'].get(login)
+            existing_uid = self.mapping1.get(login)
             if existing_uid and cookie_val != existing_uid[0]:
                 # The cookies values differ, we want to logout the
                 # user by calling resetCredentials.  Note that this
                 # will eventually call our own resetCredentials which
                 # will cleanup our own cookie.
                 self.resetAllCredentials(request, response)
-                request['portal_status_message'] = (
-                    "Someone else logged in under your name.  You have been "
-                    "logged out.")
+                pas_instance.plone_utils.addPortalMessage(_(u"Someone else logged in under your name.  You have been \
+                    logged out"), "error")
             elif existing_uid is None:
                 # The browser has the cookie but we don't know about
                 # it.  Let's reset our own cookie:
                 self.setCookie('')
-        
+       
         else:
             # When no cookie is present, we generate one, store it and
             # set it in the response:
             cookie_val = uuid()
-
             # do some cleanup in our mappings
-            #existing_uid = session['mapping1'].get(login)
-            #if existing_uid:
-            #    if session['mapping2'].has_key(existing_uid[0]):
-            #        del session['mapping2'][existing_uid[0]]
+            existing_uid = self.mapping1.get(login)
+            if existing_uid:
+                if self.mapping2.has_key(existing_uid[0]):
+                    del self.mapping2[existing_uid[0]]
 
             now = DateTime()
-            session['mapping1'] = {'login': (cookie_val, now)}
-            session['mapping2'] = {'cookie_val': (login, now)}
+            self.mapping1[login] = cookie_val, now
+            self.mapping2[cookie_val] = login, now
             self.setCookie(cookie_val)
-            
+           
         return None # Note that we never return anything useful
 
 
@@ -174,13 +189,12 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         """See ICredentialsResetPlugin.
         """
         cookie_val = self.getCookie()
-        session = self.REQUEST.SESSION
         if cookie_val:
-            loginanddate = session['mapping2'].get(cookie_val)
+            loginanddate = self.mapping2.get(cookie_val)
             if loginanddate:
                 login, date = loginanddate
-                del session['mapping2'][cookie_val]
-                existing_uid = self['mapping1'].get(login)
+                del self.mapping2[cookie_val]
+                existing_uid = self.mapping1.get(login)
                 if existing_uid:
                     assert existing_uid[0] != cookie_val
 
@@ -202,19 +216,45 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         for resetter_id, resetter in cred_resetters:
             resetter.resetCredentials(request, response)
 
+    security.declareProtected(Permissions.manage_users, 'cleanUp')
+    def cleanUp(self):
+        """Clean up storage.
+
+        Call this periodically through the web to clean up old entries
+        in the storage."""
+        expiry = DateTime() - self.time_to_delete_cookies
+
+        def cleanStorage(mapping):
+            count = 0
+            for key, (value, time) in mapping.items():
+                if time < expiry:
+                    del mapping[key]
+                    count += 1
+            return count
+
+        for mapping in self.mapping1, self.mapping2:
+            count = cleanStorage(mapping)
+       
+        return "%s entries deleted." % count
 
     security.declarePrivate('getCookie')
     def getCookie(self):
-        """Helper to retrieve the cookie value 
+        """Helper to retrieve the cookie value from either cookie or
+        session, depending on policy.
         """
         request = self.REQUEST
         response = request['RESPONSE']
-        cookie = request.SESSION.get(self.cookie_name, '')
+       
+        if self.session_based:
+            cookie = request.SESSION.get(self.cookie_name, '')
+        else:
+            cookie = request.get(self.cookie_name, '')
         return unquote(cookie)
 
     security.declarePrivate('setCookie')
     def setCookie(self, value):
-        """Helper to set the cookie value 
+        """Helper to set the cookie value to either cookie or
+        session, depending on policy.
 
         o Setting to '' means delete.
         """
@@ -222,7 +262,13 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         request = self.REQUEST
         response = request['RESPONSE']
 
-        request.SESSION.set(self.cookie_name, value)
+        if self.session_based:
+            request.SESSION.set(self.cookie_name, value)
+        else:
+            if value:
+                response.setCookie(self.cookie_name, value, path='/')
+            else:
+                response.expireCookie(self.cookie_name, path='/')
 
 
 classImplements(NoDuplicateLogin,
