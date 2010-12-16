@@ -44,7 +44,13 @@ from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
-from plone.session.interfaces import ISessionSource
+# XXX Gone in Plone 4
+#from plone.session.interfaces import ISessionSource
+
+# New in Plone 4
+from plone.session import tktauth
+from zope.component import queryUtility
+from plone.keyring.interfaces import IKeyManager
 
 from utils import uuid
 
@@ -102,6 +108,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     # UIDs older than three days are deleted from our storage...
     time_to_delete_cookies = 3
+    _dont_swallow_my_exceptions = True
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
@@ -136,16 +143,45 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # In other words, if we are basic auth'ing in the ZMI do nothing.
             return None
         else:
+            # XXX Can't do this in Plone 4
             #plone.session complicates our life, this extracted from their
             #plugin
-            session_source = ISessionSource(pas_instance.plugins.session)
-            identifier = credentials.get("cookie","")
-            if session_source.verifyIdentifier(identifier):
-                login = session_source.extractUserId(identifier)
-                self.plone_session = True
+            #session_source = ISessionSource(pas_instance.plugins.session)
+            #identifier = credentials.get("cookie","")
+            #if session_source.verifyIdentifier(identifier):
+            #    login = session_source.extractUserId(identifier)
+            #    self.plone_session = True
+            #else:
+            #    return None
+
+            # Acquisition will find the plone.session plugin object
+            session_source = self.session
+            ticket=credentials["cookie"]
+            if session_source._shared_secret is not None:
+                ticket_data = tktauth.validateTicket(session_source._shared_secret, ticket,
+                    timeout=session_source.timeout, mod_auth_tkt=session_source.mod_auth_tkt)
             else:
+                ticket_data = None
+                manager = queryUtility(IKeyManager)
+                if manager is None:
+                    return None
+                for secret in manager[u"_system"]:
+                    if secret is None:
+                        continue
+                    ticket_data = tktauth.validateTicket(secret, ticket,
+                        timeout=session_source.timeout, mod_auth_tkt=session_source.mod_auth_tkt)
+                    if ticket_data is not None:
+                        break
+            if ticket_data is None:
                 return None
 
+            (digest, userid, tokens, user_data, timestamp) = ticket_data
+            pas=self._getPAS()
+            info=pas._verifyUser(pas.plugins, user_id=userid)
+            if info is None:
+                return None
+
+            login = info['login']
 
 
         cookie_val = self.getCookie()
