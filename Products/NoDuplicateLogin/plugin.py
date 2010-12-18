@@ -108,7 +108,10 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     # UIDs older than three days are deleted from our storage...
     time_to_delete_cookies = 3
-    _dont_swallow_my_exceptions = True
+
+    # I wish I had a better explanation for this, but disabling this makes both the ZMI (basic auth) work and the NoDuplicateLogin work. Otherwise, we get a traceback on basic auth. I suspect that means this plugin needs to handle basic auth better but I'm not sure how or why.
+
+#    _dont_swallow_my_exceptions = True
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
@@ -156,7 +159,9 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
             # Acquisition will find the plone.session plugin object
             session_source = self.session
-            ticket=credentials["cookie"]
+
+            ticket = credentials.get('cookie')
+
             if session_source._shared_secret is not None:
                 ticket_data = tktauth.validateTicket(session_source._shared_secret, ticket,
                     timeout=session_source.timeout, mod_auth_tkt=session_source.mod_auth_tkt)
@@ -168,10 +173,13 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 for secret in manager[u"_system"]:
                     if secret is None:
                         continue
+
                     ticket_data = tktauth.validateTicket(secret, ticket,
                         timeout=session_source.timeout, mod_auth_tkt=session_source.mod_auth_tkt)
+
                     if ticket_data is not None:
                         break
+
             if ticket_data is None:
                 return None
 
@@ -183,8 +191,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
             login = info['login']
 
-
         cookie_val = self.getCookie()
+
         if cookie_val:
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
