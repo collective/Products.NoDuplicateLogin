@@ -1,0 +1,15 @@
+
+History
+-------
+       
+1.0b1 (12/17/2010)
+~~~~~~~~~~~~~~~~~~
+
+* Plone 4 compat [aclark]
+* Rearchitect to use REQUEST.SESSION instead of OOBTree [aclark]
+
+1.0 svn/dev
+~~~~~~~~~~~
+
+* Plone 3 compat [perrito]
+* Original implementation [nouri]
