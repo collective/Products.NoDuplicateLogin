@@ -58,7 +58,8 @@ from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 manage_addNoDuplicateLoginForm = PageTemplateFile(
     'www/noduplicateloginAdd',
     globals(),
-    __name__='manage_addNoDuplicateLoginForm' )
+    __name__='manage_addNoDuplicateLoginForm')
+
 
 def manage_addNoDuplicateLogin(dispatcher,
                                id,
@@ -89,29 +90,22 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
     cookie_name = '__noduplicate'
     security = ClassSecurityInfo()
 
-    _properties = ( { 'id'    : 'title'
-                    , 'label' : 'Title'
-                    , 'type'  : 'string'
-                    , 'mode'  : 'w'
-                    }
-                  , { 'id'    : 'cookie_name'
-                    , 'label' : 'Cookie Name'
-                    , 'type'  : 'string'
-                    , 'mode'  : 'w'
-                    }
-                  , { 'id'    : 'session_based'
-                    , 'label' : 'Session Based'
-                    , 'type'  : 'boolean'
-                    , 'mode'  : 'w'
-                    }
-                  )
+    _properties = (
+        {'id': 'title', 'label': 'Title', 'type': 'string', 'mode': 'w'},
+        {'id': 'cookie_name', 'label': 'Cookie Name', 'type': 'string',
+            'mode': 'w'},
+        {'id': 'session_based', 'label': 'Session Based', 'type': 'boolean',
+            'mode': 'w'}
+        )
 
     # UIDs older than three days are deleted from our storage...
     time_to_delete_cookies = 3
 
-    # I wish I had a better explanation for this, but disabling this makes both the ZMI (basic auth) work and the NoDuplicateLogin work. Otherwise, we get a traceback on basic auth. I suspect that means this plugin needs to handle basic auth better but I'm not sure how or why.
-
-#    _dont_swallow_my_exceptions = True
+    # XXX I wish I had a better explanation for this, but disabling this makes
+    # both # the ZMI (basic auth) work and the NoDuplicateLogin work.
+    # Otherwise, we get a traceback on basic auth. I suspect that means this
+    # plugin needs to handle basic auth better but I'm not sure how or why.
+    #_dont_swallow_my_exceptions = True
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
@@ -121,12 +115,13 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             self.cookie_name = cookie_name
         self.session_based = session_based
 
-        self.mapping1 = OOBTree() # userid : (UID, DateTime)
-        self.mapping2 = OOBTree() # UID : (userid, DateTime)
+        self.mapping1 = OOBTree()  # userid : (UID, DateTime)
+        self.mapping2 = OOBTree()  # UID : (userid, DateTime)
 
-        self.plone_session = None #for plone.session
+        self.plone_session = None  # for plone.session
 
     security.declarePrivate('authenticateCredentials')
+
     def authenticateCredentials(self, credentials):
         """See IAuthenticationPlugin.
 
@@ -142,8 +137,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         login = credentials.get('login')
         password = credentials.get('password')
 
-        if None in (login, password, pas_instance) and credentials.get('source') !=  'plone.session':
-            # In other words, if we are basic auth'ing in the ZMI do nothing.
+        if None in (login, password, pas_instance) and (
+            credentials.get('source') != 'plone.session'):
             return None
         else:
             # XXX Can't do this in Plone 4
@@ -163,8 +158,10 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             ticket = credentials.get('cookie')
 
             if session_source._shared_secret is not None:
-                ticket_data = tktauth.validateTicket(session_source._shared_secret, ticket,
-                    timeout=session_source.timeout, mod_auth_tkt=session_source.mod_auth_tkt)
+                ticket_data = tktauth.validateTicket(
+                    session_source._shared_secret, ticket,
+                    timeout=session_source.timeout,
+                    mod_auth_tkt=session_source.mod_auth_tkt)
             else:
                 ticket_data = None
                 manager = queryUtility(IKeyManager)
@@ -175,7 +172,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                         continue
 
                     ticket_data = tktauth.validateTicket(secret, ticket,
-                        timeout=session_source.timeout, mod_auth_tkt=session_source.mod_auth_tkt)
+                        timeout=session_source.timeout,
+                        mod_auth_tkt=session_source.mod_auth_tkt)
 
                     if ticket_data is not None:
                         break
@@ -184,8 +182,9 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 return None
 
             (digest, userid, tokens, user_data, timestamp) = ticket_data
-            pas=self._getPAS()
-            info=pas._verifyUser(pas.plugins, user_id=userid)
+            pas = self._getPAS()
+            info = pas._verifyUser(pas.plugins, user_id=userid)
+
             if info is None:
                 return None
 
@@ -204,13 +203,14 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 # will eventually call our own resetCredentials which
                 # will cleanup our own cookie.
                 self.resetAllCredentials(request, response)
-                pas_instance.plone_utils.addPortalMessage(_(u"Someone else logged in under your name.  You have been \
+                pas_instance.plone_utils.addPortalMessage(_(
+                    u"Someone else logged in under your name.  You have been \
                     logged out"), "error")
             elif existing_uid is None:
                 # The browser has the cookie but we don't know about
                 # it.  Let's reset our own cookie:
                 self.setCookie('')
-       
+
         else:
             # When no cookie is present, we generate one, store it and
             # set it in the response:
@@ -218,18 +218,18 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # do some cleanup in our mappings
             existing_uid = self.mapping1.get(login)
             if existing_uid:
-                if self.mapping2.has_key(existing_uid[0]):
+                if existing_uid[0] in self.mapping2.has_key:
                     del self.mapping2[existing_uid[0]]
 
             now = DateTime()
             self.mapping1[login] = cookie_val, now
             self.mapping2[cookie_val] = login, now
             self.setCookie(cookie_val)
-           
-        return None # Note that we never return anything useful
 
+        return None  # Note that we never return anything useful
 
     security.declarePrivate('resetCredentials')
+
     def resetCredentials(self, request, response):
         """See ICredentialsResetPlugin.
         """
@@ -246,6 +246,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         self.setCookie('')
 
     security.declarePrivate('resetAllCredentials')
+
     def resetAllCredentials(self, request, response):
         """Call resetCredentials of all plugins.
 
@@ -262,6 +263,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             resetter.resetCredentials(request, response)
 
     security.declareProtected(Permissions.manage_users, 'cleanUp')
+
     def cleanUp(self):
         """Clean up storage.
 
@@ -279,17 +281,17 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
         for mapping in self.mapping1, self.mapping2:
             count = cleanStorage(mapping)
-       
+
         return "%s entries deleted." % count
 
     security.declarePrivate('getCookie')
+
     def getCookie(self):
         """Helper to retrieve the cookie value from either cookie or
         session, depending on policy.
         """
         request = self.REQUEST
-        response = request['RESPONSE']
-       
+
         if self.session_based:
             cookie = request.SESSION.get(self.cookie_name, '')
         else:
@@ -297,6 +299,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         return unquote(cookie)
 
     security.declarePrivate('setCookie')
+
     def setCookie(self, value):
         """Helper to set the cookie value to either cookie or
         session, depending on policy.
