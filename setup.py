@@ -14,6 +14,7 @@ setup(
     namespace_packages=['Products'],
     packages=find_packages(),
     install_requires=[
+        'Plone',
         'setuptools',
         ],
     extras_require={
