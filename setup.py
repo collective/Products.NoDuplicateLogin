@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    version='1.0',
+    version='1.0a1',
     name='Products.NoDuplicateLogin',
     author='Daniel Nouri',
     author_email='daniel.nouri@gmail.com',
