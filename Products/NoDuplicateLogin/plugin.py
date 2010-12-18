@@ -132,8 +132,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         login = credentials.get('login')
         password = credentials.get('password')
 
-        if None in (login, password, pas_instance) and (
-            credentials.get('source') != 'plone.session'):
+        if None in (login, password, pas_instance) and credentials.get('source') != 'plone.session':
             return None
         else:
             session_source = self.session
@@ -201,7 +200,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # do some cleanup in our mappings
             existing_uid = self.mapping1.get(login)
             if existing_uid:
-                if existing_uid[0] in self.mapping2.has_key:
+                if existing_uid[0] in self.mapping2:
                     del self.mapping2[existing_uid[0]]
 
             now = DateTime()
