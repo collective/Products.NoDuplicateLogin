@@ -96,10 +96,11 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
     time_to_delete_cookies = 3
 
     # XXX I wish I had a better explanation for this, but disabling this makes
-    # both # the ZMI (basic auth) work and the NoDuplicateLogin work.
+    # both the ZMI (basic auth) work and the NoDuplicateLogin work.
     # Otherwise, we get a traceback on basic auth. I suspect that means this
     # plugin needs to handle basic auth better but I'm not sure how or why.
-    #_dont_swallow_my_exceptions = True
+    # Normally, we would prefer to see our exceptions.
+    _dont_swallow_my_exceptions = False
 
     def __init__(self, id, title=None, cookie_name='', session_based=False):
         self._id = self.id = id
