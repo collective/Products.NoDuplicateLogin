@@ -132,7 +132,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         login = credentials.get('login')
         password = credentials.get('password')
 
-        if None in (login, password, pas_instance) and credentials.get('source') != 'plone.session':
+        if None in (login, password, pas_instance) and (
+            credentials.get('source') != 'plone.session'):
             return None
         else:
             session_source = self.session
