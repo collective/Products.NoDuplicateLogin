@@ -247,7 +247,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         session, depending on policy.
         """
         request = self.REQUEST
-        cookie = request.SESSION.get(self.cookie_name, '')
+        cookie = request.get(self.cookie_name, '')
         return unquote(cookie)
 
     security.declarePrivate('setCookie')
@@ -262,29 +262,32 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         request = self.REQUEST
         response = request['RESPONSE']
 
-        request.SESSION.set(self.cookie_name, value)
+        if value:
+            response.setCookie(self.cookie_name, value, path='/')
+        else:
+            response.expireCookie(self.cookie_name, path='/')
 
-    security.declareProtected(Permissions.manage_users, 'cleanUp') 
-     
-    def cleanUp(self): 
-        """Clean up storage. 
-    
-        Call this periodically through the web to clean up old entries 
-        in the storage.""" 
-        expiry = DateTime() - self.time_to_delete_cookies 
-    
-        def cleanStorage(mapping): 
-            count = 0 
-            for key, (value, time) in mapping.items(): 
-                if time < expiry: 
-                    del mapping[key] 
-                    count += 1 
-            return count 
-    
-        for mapping in self.mapping1, self.mapping2: 
-            count = cleanStorage(mapping) 
-    
-        return "%s entries deleted." % count 
+    security.declareProtected(Permissions.manage_users, 'cleanUp')
+
+    def cleanUp(self):
+        """Clean up storage.
+
+        Call this periodically through the web to clean up old entries
+        in the storage."""
+        expiry = DateTime() - self.time_to_delete_cookies
+
+        def cleanStorage(mapping):
+            count = 0
+            for key, (value, time) in mapping.items():
+                if time < expiry:
+                    del mapping[key]
+                    count += 1
+            return count
+
+        for mapping in self.mapping1, self.mapping2:
+            count = cleanStorage(mapping)
+
+        return "%s entries deleted." % count
 
 classImplements(NoDuplicateLogin,
                 IAuthenticationPlugin,
