@@ -5,7 +5,7 @@ History
 1.0a1 (12/17/2010)
 ~~~~~~~~~~~~~~~~~~
 
-* Add tests [aclark]
+* Add test harness [aclark]
 * Rip out "experimental" session storage, too many ZODB conflicts. [aclark]
 * Plone 4 compat [aclark]
 * Re-package as egg [aclark]
