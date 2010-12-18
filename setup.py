@@ -16,4 +16,7 @@ setup(
     install_requires=[
         'setuptools',
         ]
+    extras_require={
+        'tests': ['zope.testing'],
+    },
     )
