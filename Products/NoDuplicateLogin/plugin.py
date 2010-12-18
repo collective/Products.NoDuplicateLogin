@@ -240,28 +240,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         for resetter_id, resetter in cred_resetters:
             resetter.resetCredentials(request, response)
 
-    security.declareProtected(Permissions.manage_users, 'cleanUp')
-
-    def cleanUp(self):
-        """Clean up storage.
-
-        Call this periodically through the web to clean up old entries
-        in the storage."""
-        expiry = DateTime() - self.time_to_delete_cookies
-
-        def cleanStorage(mapping):
-            count = 0
-            for key, (value, time) in mapping.items():
-                if time < expiry:
-                    del mapping[key]
-                    count += 1
-            return count
-
-        for mapping in self.mapping1, self.mapping2:
-            count = cleanStorage(mapping)
-
-        return "%s entries deleted." % count
-
     security.declarePrivate('getCookie')
 
     def getCookie(self):
