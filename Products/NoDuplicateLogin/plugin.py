@@ -26,35 +26,29 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-"""NoDuplicatePlugin
+"""NoDuplicateLogin plugin
 """
 
 __author__ = "Daniel Nouri <daniel.nouri@gmail.com>"
 
-from urllib import quote, unquote
-
+from AccessControl import ClassSecurityInfo, Permissions
 from BTrees.OOBTree import OOBTree
 from DateTime import DateTime
-from AccessControl import ClassSecurityInfo, Permissions
 from Globals import InitializeClass
 from OFS.Cache import Cacheable
-
 from Products.CMFPlone import PloneMessageFactory as _
+from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
-# XXX Gone in Plone 4
-#from plone.session.interfaces import ISessionSource
 
-# New in Plone 4
 from plone.session import tktauth
-from zope.component import queryUtility
 from plone.keyring.interfaces import IKeyManager
-
+from urllib import quote, unquote
 from utils import uuid
+from zope.component import queryUtility
 
-from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 manage_addNoDuplicateLoginForm = PageTemplateFile(
     'www/noduplicateloginAdd',
     globals(),
@@ -141,18 +135,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             credentials.get('source') != 'plone.session'):
             return None
         else:
-            # XXX Can't do this in Plone 4
-            #plone.session complicates our life, this extracted from their
-            #plugin
-            #session_source = ISessionSource(pas_instance.plugins.session)
-            #identifier = credentials.get("cookie","")
-            #if session_source.verifyIdentifier(identifier):
-            #    login = session_source.extractUserId(identifier)
-            #    self.plone_session = True
-            #else:
-            #    return None
-
-            # Acquisition will find the plone.session plugin object
             session_source = self.session
 
             ticket = credentials.get('cookie')
