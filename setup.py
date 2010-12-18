@@ -11,6 +11,7 @@ setup(
     long_description=read('README.txt') + read('docs/HISTORY.txt'),
     author='Daniel Nouri',
     author_email='daniel.nouri@gmail.com',
+    url='http://svn.plone.org/svn/collective/PASPlugins/Products.NoDuplicateLogin',
     namespace_packages=['Products'],
     packages=find_packages(),
     install_requires=[
