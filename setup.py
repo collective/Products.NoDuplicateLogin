@@ -14,6 +14,7 @@ setup(
     url='http://svn.plone.org/svn/collective/PASPlugins/Products.NoDuplicateLogin',
     namespace_packages=['Products'],
     packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         'Plone',
         'setuptools',
