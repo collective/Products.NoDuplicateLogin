@@ -17,7 +17,7 @@ time, by forcing a logout of all but one user.
     </div>
     </td>
     <td align="left" valign="top">
-    <input type="text" name="id" size="40" />
+    <input type="text" name="id" size="40" value="no_duplicate_login"/>
     </td>
   </tr>
   <tr>
@@ -27,17 +27,17 @@ time, by forcing a logout of all but one user.
     </div>
     </td>
     <td align="left" valign="top">
-    <input type="text" name="title" size="40" />
+    <input type="text" name="title" size="40" value="No Duplicate Login Plugin"/>
     </td>
   </tr>
   <tr>
     <td align="left" valign="top">
     <div class="form-optional">
-    Cookie Name (optional)
+    Cookie Name
     </div>
     </td>
     <td align="left" valign="top">
-    <input type="text" name="cookie_name" size="40" />
+    <input type="text" name="cookie_name" size="40" value="__noduplicate"/>
     </td>
   </tr>
   <tr>

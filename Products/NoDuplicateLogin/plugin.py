@@ -78,7 +78,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
     the same time, by forcing a logout of all but one user.
     """
 
-    meta_type = 'No Duplicate Plugin'
+    meta_type = 'No Duplicate Login Plugin'
     cookie_name = '__noduplicate'
     security = ClassSecurityInfo()
 
