@@ -43,4 +43,17 @@ section::
         ...
         Products.NoDuplicateLogin
 
-Now run buildout and restart Plone.
+Now run buildout and restart Plone. Once Plone has started, login and browse
+to ``Site Setup -> Zope Management Interface -> acl_users`` and add a ``No Duplicate
+Login Plugin`` from the drop down menu in the upper right.
+
+After that, click on the ``No Duplicate Login Plugin`` object in the acl_users
+folder listing. For both the ``Authentication`` and ``Reset Credentials``
+objects in the ``No Duplicate Login Plugin`` folder listing, click, then move the
+``no_duplicate_login`` plugin from the ``Available Plugins`` display widget on the
+left to the ``Active Plugins`` display widget on the right using the arrow
+buttons in the middle.
+
+Now test! It may also be necessary to "arrow up" the ``no_duplicate_login``
+plugin in the ``Active Plugins`` display listing for both ``Authentication``
+and ``Reset Credentials``.

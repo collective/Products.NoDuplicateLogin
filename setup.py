@@ -5,7 +5,7 @@ def read(filename):
     return open(filename, 'rb').read()
 
 setup(
-    version='1.0a1',
+    version='1.0a2',
     name='Products.NoDuplicateLogin',
     description='Products.NoDuplicateLogin',
     long_description=read('README.txt') + read('docs/HISTORY.txt'),
