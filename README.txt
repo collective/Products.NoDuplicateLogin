@@ -25,7 +25,7 @@ has our cookie but that it differs from the cookie value that it remembered
 (Karl's browser has that cookie value). Anna is logged out but the plugin and
 sees the message "Someone else logged in under your name".
 
-.. Note::
+.. Warning::
 
     Because this implementation stores its mappings in the ZODB on attributes
     of the plugin itself, there may be issues with scaling.
