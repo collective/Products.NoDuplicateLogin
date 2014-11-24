@@ -1,19 +1,17 @@
 import unittest
 
-from Products.CMFPlone.tests import PloneTestCase
+from plone.testing import Layer
+from plone.testing import z2
 
-PloneTestCase.setupPloneSite()
+class NDLFixture(Layer):
+    defaultBases = (z2.STARTUP,)
+
+NDL_FIXTURE = NDLFixture()
+NDL_FUNCTIONAL = z2.FunctionalTesting(bases=(NDL_FIXTURE, ), name='NDLFixture:Functional')
 
 class DoStuffWithUnitTest(unittest.TestCase):
-    def setUp(self):
-        pass
-
+    layer = NDL_FUNCTIONAL
+    
     def testFoo(self):
-        pass
+        self.assertEqual(1, 2)
 
-class DoStuffWithPTC(PloneTestCase.PloneTestCase):
-    def setUp(self):
-        pass
-
-    def testFoo(self):
-        pass

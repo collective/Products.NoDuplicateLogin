@@ -19,7 +19,9 @@ setup(
         'Plone',
         'setuptools',
         ],
-    extras_require={
-        'tests': ['zope.testing'],
+    extras_require = {
+        'tests': [
+                'plone.app.testing',
+            ]
     },
-    )
+)
