@@ -32,8 +32,12 @@
 __author__ = "Daniel Nouri <daniel.nouri@gmail.com>"
 
 from AccessControl import ClassSecurityInfo, Permissions
+#from BTrees.LLBTree import LLBTree
+#from BTrees.LOBTree import LOBTree
 from BTrees.OOBTree import OOBTree
-from DateTime import DateTime
+from BTrees.OLBTree import OLBTree
+import time
+import uuid
 from Globals import InitializeClass
 from OFS.Cache import Cacheable
 from Products.CMFPlone import PloneMessageFactory as _
@@ -50,7 +54,9 @@ except:
     IStatusMessage = NotImplemented
 
 from urllib import quote, unquote
-from utils import uuid
+
+
+DAYS = 60 * 60 * 24
 
 manage_addNoDuplicateLoginForm = PageTemplateFile(
     'www/noduplicateloginAdd',
@@ -92,14 +98,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         )
 
     # UIDs older than three days are deleted from our storage...
-    time_to_delete_cookies = 3
-
-    # XXX I wish I had a better explanation for this, but disabling this makes
-    # both the ZMI (basic auth) work and the NoDuplicateLogin work.
-    # Otherwise, we get a traceback on basic auth. I suspect that means this
-    # plugin needs to handle basic auth better but I'm not sure how or why.
-    # Normally, we would prefer to see our exceptions.
-    _dont_swallow_my_exceptions = False
+    time_to_delete_cookies = 3 * DAYS
 
     def __init__(self, id, title=None, cookie_name=''):
         self._id = self.id = id
@@ -108,10 +107,9 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         if cookie_name:
             self.cookie_name = cookie_name
 
-        self.mapping1 = OOBTree()  # userid : (UID, DateTime)
-        self.mapping2 = OOBTree()  # UID : (userid, DateTime)
-
-        self.plone_session = None  # for plone.session
+        self._userid_to_uuid = OOBTree()  # userid : uuid.uuid4().hex
+        self._uuid_to_time = OLBTree()    # uuid : int(time.time())
+        self._uuid_to_userid = OOBTree()  # uuid.uuid4().hex : userid
 
     security.declarePrivate('authenticateCredentials')
 
@@ -132,12 +130,11 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             plugins = self._getPAS().plugins
             authenticators = plugins.listPlugins( IAuthenticationPlugin )
             for authenticator_id, auth in authenticators:
-                if auth is self:
+                if authenticator_id == self.id:
                     # Avoid recursion
                     continue
                 try:
-                    uid_and_info = auth.authenticateCredentials(
-                        credentials )
+                    uid_and_info = auth.authenticateCredentials( credentials )
                     if uid_and_info is None:
                         continue
                     user_id, info = uid_and_info
@@ -153,8 +150,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
             # logout.
-            existing_uid = self.mapping1.get(login)
-            if existing_uid and cookie_val != existing_uid[0]:
+            existing_uid = self._userid_to_uuid.get(login)
+            if existing_uid and (cookie_val != existing_uid):
                 # The cookies values differ, we want to logout the
                 # user by calling resetCredentials.  Note that this
                 # will eventually call our own resetCredentials which
@@ -170,7 +167,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                         pass
                 # If a credential isn't resettable we can fake it by clearing
                 # the (mutable) credentials dictionary we recieved, so downstream
-                # plugins won't succeed
+                # plugins won't succeed. This won't be persistent, but it could cause challenges
+                # to be re-issued.
                 credentials.clear()
             elif existing_uid is None:
                 # The browser has the cookie but we don't know about
@@ -180,16 +178,19 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         else:
             # When no cookie is present, we generate one, store it and
             # set it in the response:
-            cookie_val = uuid()
+            cookie_val = uuid.uuid4().hex
             # do some cleanup in our mappings
-            existing_uid = self.mapping1.get(login)
+            existing_uid = self._userid_to_uuid.get(login)
             if existing_uid:
-                if existing_uid[0] in self.mapping2:
-                    del self.mapping2[existing_uid[0]]
+                if existing_uid in self._uuid_to_userid:
+                    del self._uuid_to_userid[existing_uid]
+                if existing_uid in self._uuid_to_time:
+                    del self._uuid_to_time[existing_uid]
 
-            now = DateTime()
-            self.mapping1[login] = cookie_val, now
-            self.mapping2[cookie_val] = login, now
+            now = int(time.time())
+            self._userid_to_uuid[login] = cookie_val
+            self._uuid_to_time[login] = now
+            self._uuid_to_userid[cookie_val] = login
             self.setCookie(cookie_val)
 
         return None  # Note that we never return anything useful
@@ -201,13 +202,17 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         """
         cookie_val = self.getCookie()
         if cookie_val:
-            loginanddate = self.mapping2.get(cookie_val)
-            if loginanddate:
-                login, date = loginanddate
-                del self.mapping2[cookie_val]
-                existing_uid = self.mapping1.get(login)
-                if existing_uid:
-                    assert existing_uid[0] != cookie_val
+            login = self._uuid_to_userid.get(cookie_val)
+            date = self._uuid_to_time.get(cookie_val)
+            if login is not None:
+                del self._uuid_to_userid[cookie_val]
+            if date is not None:
+                del self._uuid_to_time[cookie_val]
+            try:
+                del self._uuid_to_userid[cookie_val]
+            except KeyError:
+                # The record's already been removed for us
+                pass
 
         self.setCookie('')
 
@@ -262,19 +267,18 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
         Call this periodically through the web to clean up old entries
         in the storage."""
-        expiry = DateTime() - self.time_to_delete_cookies
+        count = 0
+        
+        expiry = int(time.time()) - self.time_to_delete_cookies
 
-        def cleanStorage(mapping):
-            count = 0
-            for key, (value, time) in mapping.items():
-                if time < expiry:
-                    del mapping[key]
-                    count += 1
-            return count
-
-        for mapping in self.mapping1, self.mapping2:
-            count = cleanStorage(mapping)
-
+        for u, t in self._uuid_to_time.items():
+            if t < expiry:
+                login = self._uuid_to_userid.get(u)
+                del self._uuid_to_time[u]
+                del self._uuid_to_userid[u]
+                if login:
+                    del self._userid_to_uuid[login]
+                
         return "%s entries deleted." % count
 
 classImplements(NoDuplicateLogin,
