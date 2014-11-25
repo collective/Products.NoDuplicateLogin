@@ -2,6 +2,14 @@
 History
 -------
 
+1.0b1 (25/11/2014)
+~~~~~~~~~~~~~~~~~~
+
+* Remove reimplementation of plone.session [matthewwilkes]
+* Change internal data structures to avoid unnecessary object stores [matthewwilkes]
+* Add tests to test harness [matthewwilkes]
+* Fix pure Zope compatibility [matthewwilkes]
+
 1.0a2 (02/18/2011)
 ~~~~~~~~~~~~~~~~~~
 
