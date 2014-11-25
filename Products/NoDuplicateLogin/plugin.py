@@ -43,11 +43,14 @@ from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
      import IAuthenticationPlugin, ICredentialsResetPlugin
 
-from plone.session import tktauth
-from plone.keyring.interfaces import IKeyManager
+
+try:
+    from Products.statusmessages.interfaces import IStatusMessage
+except:
+    IStatusMessage = NotImplemented
+
 from urllib import quote, unquote
 from utils import uuid
-from zope.component import queryUtility
 
 manage_addNoDuplicateLoginForm = PageTemplateFile(
     'www/noduplicateloginAdd',
@@ -122,54 +125,30 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         """
         request = self.REQUEST
         response = request['RESPONSE']
-        pas_instance = self._getPAS()
 
         login = credentials.get('login')
-        password = credentials.get('password')
-
-        if None in (login, password, pas_instance) and (
-            credentials.get('source') != 'plone.session'):
-            return None
-        else:
-            session_source = self.session
-
-            ticket = credentials.get('cookie')
-
-            if session_source._shared_secret is not None:
-                ticket_data = tktauth.validateTicket(
-                    session_source._shared_secret, ticket,
-                    timeout=session_source.timeout,
-                    mod_auth_tkt=session_source.mod_auth_tkt)
-            else:
-                ticket_data = None
-                manager = queryUtility(IKeyManager)
-                if manager is None:
-                    return None
-                for secret in manager[u"_system"]:
-                    if secret is None:
+        if login is None:
+            # We check with the downstream authenticators to see if they can fill it in for us
+            plugins = self._getPAS().plugins
+            authenticators = plugins.listPlugins( IAuthenticationPlugin )
+            for authenticator_id, auth in authenticators:
+                if auth is self:
+                    # Avoid recursion
+                    continue
+                try:
+                    uid_and_info = auth.authenticateCredentials(
+                        credentials )
+                    if uid_and_info is None:
                         continue
-
-                    ticket_data = tktauth.validateTicket(secret, ticket,
-                        timeout=session_source.timeout,
-                        mod_auth_tkt=session_source.mod_auth_tkt)
-
-                    if ticket_data is not None:
-                        break
-
-            if ticket_data is None:
-                return None
-
-            (digest, userid, tokens, user_data, timestamp) = ticket_data
-            pas = self._getPAS()
-            info = pas._verifyUser(pas.plugins, user_id=userid)
-
-            if info is None:
-                return None
-
-            login = info['login']
+                    user_id, info = uid_and_info
+                except StandardError:
+                    # We squelch all errors here, they'll be re-raised by the plugin itself
+                    # if appropriate
+                    continue
+                login = user_id
 
         cookie_val = self.getCookie()
-
+        
         if cookie_val:
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
@@ -181,9 +160,18 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 # will eventually call our own resetCredentials which
                 # will cleanup our own cookie.
                 self.resetAllCredentials(request, response)
-                pas_instance.plone_utils.addPortalMessage(_(
-                    u"Someone else logged in under your name.  You have been \
-                    logged out"), "error")
+                if IStatusMessage is not NotImplemented:
+                    try:
+                        IStatusMessage(request).add(_(
+                            u"Someone else logged in under your name. You have been "
+                            "logged out"), "error")
+                    except TypeError:
+                        # Status messages aren't possible for this request
+                        pass
+                # If a credential isn't resettable we can fake it by clearing
+                # the (mutable) credentials dictionary we recieved, so downstream
+                # plugins won't succeed
+                credentials.clear()
             elif existing_uid is None:
                 # The browser has the cookie but we don't know about
                 # it.  Let's reset our own cookie:
