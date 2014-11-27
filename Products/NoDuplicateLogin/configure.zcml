@@ -1,7 +1,8 @@
 <configure
   xmlns="http://namespaces.zope.org/browser"
   xmlns:zcml="http://namespaces.zope.org/zcml"
-  xmlns:zope="http://namespaces.zope.org/zope">
+  xmlns:zope="http://namespaces.zope.org/zope"
+  xmlns:genericsetup="http://namespaces.zope.org/genericsetup">
   
   <include package="collective.autopermission" />
   
@@ -25,5 +26,13 @@
     for="Products.NoDuplicateLogin.plugin.NoDuplicateLogin"
     permission="Products.NoDuplicateLogin.ExpireSession"
   />
+  
+  
+  <genericsetup:importStep
+      name="Products.NoDuplicateLogin"
+      title="Enable NoDuplicateLogin behaviour"
+      description=""
+      handler="Products.NoDuplicateLogin.setuphandlers.setupVarious"
+      />
   
 </configure>

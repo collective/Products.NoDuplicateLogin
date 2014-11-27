@@ -57,3 +57,6 @@ buttons in the middle.
 Now test! It may also be necessary to "arrow up" the ``no_duplicate_login``
 plugin in the ``Active Plugins`` display listing for both ``Authentication``
 and ``Reset Credentials``.
+
+If you are using a policy product to install this, you can perform these actions by including an
+empty ``noduplicatelogin.xml`` file in your profile directory.
