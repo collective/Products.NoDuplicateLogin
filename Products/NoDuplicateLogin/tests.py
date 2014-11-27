@@ -7,6 +7,7 @@ from plone.testing import z2
 from Products.PluggableAuthService.Extensions import upgrade
 from Products.PluggableAuthService.interfaces.plugins import IAuthenticationPlugin
 from Products.PluggableAuthService.interfaces.plugins import ICredentialsResetPlugin
+from Products.PluggableAuthService.interfaces.plugins import ICredentialsUpdatePlugin
 
             
 WHOAMI_SCRIPT = """
@@ -46,11 +47,11 @@ class BasicAuthTests(unittest.TestCase):
         app.acl_users.manage_addProduct['NoDuplicateLogin'].manage_addNoDuplicateLogin("nodupe")
         app.acl_users.plugins.activatePlugin(IAuthenticationPlugin, "nodupe")
         app.acl_users.plugins.activatePlugin(ICredentialsResetPlugin, "nodupe")
+        app.acl_users.plugins.activatePlugin(ICredentialsUpdatePlugin, "nodupe")
         
         for i in range(10):
-            # Make sure our plugin is first
+            # Make sure our auth plugin is first
             app.acl_users.plugins.movePluginsUp(IAuthenticationPlugin, ["nodupe"])
-            app.acl_users.plugins.movePluginsUp(ICredentialsResetPlugin, ["nodupe"])
         
         import transaction
         transaction.commit()
