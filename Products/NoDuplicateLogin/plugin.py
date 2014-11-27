@@ -263,7 +263,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # Get the current time as seconds since 1970, as it's int-ey and likes BTrees
             now = int(time.time())
             self._userid_to_uuid[login] = cookie_val
-            self._uuid_to_time[login] = now
+            self._uuid_to_time[cookie_val] = now
             self._uuid_to_userid[cookie_val] = login
             # Set the new cookie into the response
             self.setCookie(cookie_val, response=response)
