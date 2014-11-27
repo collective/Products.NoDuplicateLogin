@@ -34,7 +34,7 @@
               <td tal:content="session/username" />
               <td tal:content="session/time" />
               <td>
-                <form action="revoke_session_do">
+                <form tal:attributes="action string:${context/absolute_url}/revoke_session_do">
                   <input type="hidden" name="user" tal:attributes="value session/username" />
                   <button>Log out</button>
                 </form>

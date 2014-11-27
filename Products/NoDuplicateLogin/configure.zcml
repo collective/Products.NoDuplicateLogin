@@ -14,7 +14,7 @@
     name="revoke_session"
     template="www/revoke_session.pt"
     class=".views.RevokeSession"
-    for="*"
+    for="Products.NoDuplicateLogin.plugin.NoDuplicateLogin"
     permission="Products.NoDuplicateLogin.ExpireSession"
   />
   
@@ -22,7 +22,7 @@
     name="revoke_session_do"
     class=".views.RevokeSession"
     attribute="do_remove"
-    for="*"
+    for="Products.NoDuplicateLogin.plugin.NoDuplicateLogin"
     permission="Products.NoDuplicateLogin.ExpireSession"
   />
   
