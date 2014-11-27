@@ -8,8 +8,8 @@
 <body define="global sr python:True;">
 
 
-<metal:content-core fill-slot="main">
-    <metal:content-core define-macro="main">
+<metal:content-core fill-slot="content">
+    <metal:content-core define-macro="content">
       
       <h1>No Duplicate Logins</h1>
       <tal:nonodupe tal:condition="not: view/has_nodupe">
