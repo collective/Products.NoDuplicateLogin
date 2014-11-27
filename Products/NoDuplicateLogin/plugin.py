@@ -211,7 +211,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             login = self._uuid_to_userid.get(cookie_val)
             date = self._uuid_to_time.get(cookie_val)
             if login is not None:
-                del self._uuid_to_userid[cookie_val]
+                del self._userid_to_uuid[login]
             if date is not None:
                 del self._uuid_to_time[cookie_val]
             try:

@@ -290,7 +290,37 @@ class AdministratorRevokeTests(unittest.TestCase):
         # We only have one user now
         users_info = re.compile(r"""<td>(.*?)</td>+""", re.I|re.M|re.X).findall(admin_browser.contents)
         self.assertEqual(len(users_info), 2)
+    
+    def test_logged_out_user_not_shown(self):
+        app = self.layer['app']
         
+        # Log in as 'test-user', a normal user
+        browser = z2.Browser(app)
+        browser.open(self.layer['portal'].absolute_url() + "/login")
+        login_form = browser.getForm(id="login_form")
+        login_form.getControl(name="__ac_name").value = TEST_USER_NAME
+        login_form.getControl(name="__ac_password").value=TEST_USER_PASSWORD
+        login_form.submit()
+        
+        # Open the revoke page as the 'test' user, a Manager
+        admin_browser = z2.Browser(app)
+        admin_browser.addHeader('Authorization', 'Basic %s:%s' % ("test", "test",))
+        admin_browser.open(self.layer['portal'].acl_users.nodupe.absolute_url()+"/revoke_session")
+        
+        # See we have two sessions available to cancel
+        users_info = re.compile(r"""<td>(.*?)</td>+""", re.I|re.M|re.X).findall(admin_browser.contents)
+        self.assertEqual(len(users_info), 4) # (username, time)
+        
+        # As the user, log out normally
+        browser.getLink("Log out").click()
+        
+        # Check if the user is gone
+        admin_browser.open(self.layer['portal'].acl_users.nodupe.absolute_url()+"/revoke_session")
+        
+        # We only have one user now
+        users_info = re.compile(r"""<td>(.*?)</td>+""", re.I|re.M|re.X).findall(admin_browser.contents)
+        self.assertEqual(len(users_info), 2)
+    
     def test_cannot_invalidate_session_if_user_isnt_in_approved_list(self):
         app = self.layer['app']
         
