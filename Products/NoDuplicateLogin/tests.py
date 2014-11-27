@@ -198,4 +198,4 @@ class SessionTests(unittest.TestCase):
         browser.open(self.layer['portal'].absolute_url())
         self.assertIn("anon-personalbar", browser.contents)
         self.assertNotIn('<a id="user-name" href="http://nohost/plone/useractions">test</a>', browser.contents)
-        self.assertIn("Someone else logged in under your name. You have been logged out", browser.contents)
+        self.assertIn("An administrator has ended your session.", browser.contents)

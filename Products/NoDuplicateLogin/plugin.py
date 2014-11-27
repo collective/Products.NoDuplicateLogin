@@ -157,11 +157,15 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 # will eventually call our own resetCredentials which
                 # will cleanup our own cookie.
                 self.resetAllCredentials(request, response)
+                if existing_uid == 'FORCED_LOGOUT':
+                    message = _(u"An administrator has ended your session.")
+                else:
+                    message = _(
+                            u"Someone else logged in under your name. You have been "
+                            "logged out")
                 if IStatusMessage is not NotImplemented:
                     try:
-                        IStatusMessage(request).add(_(
-                            u"Someone else logged in under your name. You have been "
-                            "logged out"), "error")
+                        IStatusMessage(request).add(message, "error")
                     except TypeError:
                         # Status messages aren't possible for this request
                         pass
