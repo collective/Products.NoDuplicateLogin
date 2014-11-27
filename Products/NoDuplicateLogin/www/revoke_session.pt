@@ -30,7 +30,7 @@
             <tr tal:condition="not:sessions">
               <td colspan="3">No sessions currently active</td>
             </tr>
-            <tr tal:repeat="session sessions">
+            <tr class="user" tal:repeat="session sessions">
               <td tal:content="session/username" />
               <td tal:content="session/time" />
               <td>
