@@ -45,7 +45,7 @@ from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
-     import IAuthenticationPlugin, ICredentialsResetPlugin
+     import IAuthenticationPlugin, ICredentialsResetPlugin, ICredentialsUpdatePlugin
 
 
 try:
@@ -181,22 +181,9 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
         else:
             # When no cookie is present, we generate one, store it and
-            # set it in the response:
-            cookie_val = uuid.uuid4().hex
-            # do some cleanup in our mappings
-            existing_uid = self._userid_to_uuid.get(login)
-            if existing_uid:
-                if existing_uid in self._uuid_to_userid:
-                    del self._uuid_to_userid[existing_uid]
-                if existing_uid in self._uuid_to_time:
-                    del self._uuid_to_time[existing_uid]
-
-            now = int(time.time())
-            self._userid_to_uuid[login] = cookie_val
-            self._uuid_to_time[cookie_val] = now
-            self._uuid_to_userid[cookie_val] = login
-            self.setCookie(cookie_val)
-
+            # set it in the response
+            self.updateCredentials(self.REQUEST, self.REQUEST.RESPONSE, login, credentials.get("password"))
+            
         return None  # Note that we never return anything useful
 
     security.declarePrivate('logUserOut')
@@ -252,8 +239,37 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         for resetter_id, resetter in cred_resetters:
             resetter.resetCredentials(request, response)
 
-    security.declarePrivate('getCookie')
+    # ICredentialsUpdatePlugin implementation
+    def updateCredentials(self, request, response, login, new_password):
+        """
+        When updateCredentials is called we can take this opportunity to generate a new
+        UUID and store it unconditionally. This has the advantage of solving conflict errors when
+        serving resources after the first page load.
+        """
+        # Check that this user is our responsibility
+        pas = self._getPAS()
+        info = pas._verifyUser(pas.plugins, login=login)
+        if info is not None:
+            # Generate a uuid to represent the users
+            cookie_val = uuid.uuid4().hex
+            # do some cleanup in our mappings, remove their old session backreferences
+            existing_uid = self._userid_to_uuid.get(login)
+            if existing_uid:
+                if existing_uid in self._uuid_to_userid:
+                    del self._uuid_to_userid[existing_uid]
+                if existing_uid in self._uuid_to_time:
+                    del self._uuid_to_time[existing_uid]
+            
+            # Get the current time as seconds since 1970, as it's int-ey and likes BTrees
+            now = int(time.time())
+            self._userid_to_uuid[login] = cookie_val
+            self._uuid_to_time[login] = now
+            self._uuid_to_userid[cookie_val] = login
+            # Set the new cookie into the response
+            self.setCookie(cookie_val, response=response)
+        
 
+    security.declarePrivate('getCookie')
     def getCookie(self):
         """Helper to retrieve the cookie value from either cookie or
         session, depending on policy.
@@ -264,15 +280,16 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
     security.declarePrivate('setCookie')
 
-    def setCookie(self, value):
+    def setCookie(self, value, response=None):
         """Helper to set the cookie value to either cookie or
         session, depending on policy.
 
         o Setting to '' means delete.
         """
         value = quote(value)
-        request = self.REQUEST
-        response = request['RESPONSE']
+        if response is None:
+            request = self.REQUEST
+            response = request['RESPONSE']
 
         if value:
             response.setCookie(self.cookie_name, value, path='/')
@@ -302,6 +319,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
 classImplements(NoDuplicateLogin,
                 IAuthenticationPlugin,
-                ICredentialsResetPlugin)
+                ICredentialsResetPlugin,
+                ICredentialsUpdatePlugin)
 
 InitializeClass(NoDuplicateLogin)
