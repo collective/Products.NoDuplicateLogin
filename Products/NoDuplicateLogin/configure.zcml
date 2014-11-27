@@ -1,21 +1,29 @@
 <configure
   xmlns="http://namespaces.zope.org/browser"
-  xmlns:zcml="http://namespaces.zope.org/zcml">
-
+  xmlns:zcml="http://namespaces.zope.org/zcml"
+  xmlns:zope="http://namespaces.zope.org/zope">
+  
+  <include package="collective.autopermission" />
+  
+  <zope:permission
+     id="Products.NoDuplicateLogin.ExpireSession"
+     title="Products.NoDuplicateLogin: Force session to expire"
+   />
+  
   <page 
     name="revoke_session"
     template="www/revoke_session.pt"
     class=".views.RevokeSession"
     for="*"
-    permission="zope2.View"
+    permission="Products.NoDuplicateLogin.ExpireSession"
   />
-
+  
   <page 
     name="revoke_session_do"
     class=".views.RevokeSession"
     attribute="do_remove"
     for="*"
-    permission="zope2.View"
+    permission="Products.NoDuplicateLogin.ExpireSession"
   />
-
+  
 </configure>
