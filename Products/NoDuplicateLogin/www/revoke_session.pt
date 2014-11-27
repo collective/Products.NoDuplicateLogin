@@ -26,8 +26,11 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
-            <tr tal:repeat="session view/sessions">
+          <tbody tal:define="sessions python:tuple(view.sessions())">
+            <tr tal:condition="not:sessions">
+              <td colspan="3">No sessions currently active</td>
+            </tr>
+            <tr tal:repeat="session sessions">
               <td tal:content="session/username" />
               <td tal:content="session/time" />
               <td>
