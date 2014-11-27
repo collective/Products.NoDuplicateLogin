@@ -24,4 +24,8 @@ setup(
                 'plone.app.testing',
             ]
     },
+    entry_points="""
+    [z3c.autoinclude.plugin]
+    target = plone
+    """,
 )

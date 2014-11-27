@@ -189,7 +189,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
             now = int(time.time())
             self._userid_to_uuid[login] = cookie_val
-            self._uuid_to_time[login] = now
+            self._uuid_to_time[cookie_val] = now
             self._uuid_to_userid[cookie_val] = login
             self.setCookie(cookie_val)
 

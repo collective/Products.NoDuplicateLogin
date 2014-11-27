@@ -1,0 +1,21 @@
+<configure
+  xmlns="http://namespaces.zope.org/browser"
+  xmlns:zcml="http://namespaces.zope.org/zcml">
+
+  <page 
+    name="revoke_session"
+    template="www/revoke_session.pt"
+    class=".views.RevokeSession"
+    for="*"
+    permission="zope2.View"
+  />
+
+  <page 
+    name="revoke_session_do"
+    class=".views.RevokeSession"
+    attribute="do_remove"
+    for="*"
+    permission="zope2.View"
+  />
+
+</configure>

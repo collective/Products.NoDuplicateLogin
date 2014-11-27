@@ -1,0 +1,49 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      lang="en"
+      metal:use-macro="context/main_template/macros/master"
+      i18n:domain="plone">
+<body define="global sr python:True;">
+
+
+<metal:content-core fill-slot="main">
+    <metal:content-core define-macro="main">
+      
+      <h1>No Duplicate Logins</h1>
+      <tal:nonodupe tal:condition="not: view/has_nodupe">
+        <p>The No Duplicate Logins plugin has not been activated in this site.</p>
+      </tal:nonodupe>
+      
+      <tal:nodupe tal:condition="view/has_nodupe">
+        <p>You may force the following users to become logged out.</p>
+        <table class="listing">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Login time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr tal:repeat="session view/sessions">
+              <td tal:content="session/username" />
+              <td tal:content="session/time" />
+              <td>
+                <form action="revoke_session_do">
+                  <input type="hidden" name="user" tal:attributes="value session/username" />
+                  <button>Log out</button>
+                </form>
+            </td>
+            </tr>
+          </tbody>
+        </table>
+      </tal:nodupe>
+    </metal:content-core>
+</metal:content-core>
+
+
+</body>
+</html>
+
