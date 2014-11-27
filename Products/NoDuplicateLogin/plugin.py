@@ -195,6 +195,21 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
         return None  # Note that we never return anything useful
 
+    security.declarePrivate('logUserOut')
+    def logUserOut(self, login):
+        """ Change the unique authorisation code for a user, causing them to become logged out """
+        
+        uuid = self._userid_to_uuid.get(login)
+        date = self._uuid_to_time.get(uuid)
+        
+        self._userid_to_uuid[login] = 'FORCED_LOGOUT'
+        
+        if date is not None:
+            del self._uuid_to_time[uuid]
+        if uuid is not None:
+            del self._uuid_to_userid[uuid]
+        
+    
     security.declarePrivate('resetCredentials')
 
     def resetCredentials(self, request, response):

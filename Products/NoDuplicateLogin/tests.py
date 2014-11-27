@@ -181,3 +181,21 @@ class SessionTests(unittest.TestCase):
         self.assertIn("anon-personalbar", browser.contents)
         self.assertNotIn('<a id="user-name" href="http://nohost/plone/useractions">test</a>', browser.contents)
         self.assertIn("Someone else logged in under your name. You have been logged out", browser.contents)
+    
+    def test_utility_method_invalidates_session(self):
+        app = self.layer['app']
+        browser = z2.Browser(app)
+        browser.open(self.layer['portal'].absolute_url() + "/login")
+        login_form = browser.getForm(id="login_form")
+        login_form.getControl(name="__ac_name").value = "test"
+        login_form.getControl(name="__ac_password").value="test"
+        login_form.submit()
+        
+        self.layer['portal'].acl_users.nodupe.logUserOut("test")
+        import transaction
+        transaction.commit()
+                
+        browser.open(self.layer['portal'].absolute_url())
+        self.assertIn("anon-personalbar", browser.contents)
+        self.assertNotIn('<a id="user-name" href="http://nohost/plone/useractions">test</a>', browser.contents)
+        self.assertIn("Someone else logged in under your name. You have been logged out", browser.contents)
