@@ -1,0 +1,8 @@
+recursive-include ep *
+recursive-include docs *
+
+global-exclude *pyc
+
+global-include *.mo
+global-include CHANGES.txt
+
