@@ -2,6 +2,11 @@
 History
 -------
 
+Development
+~~~~~~~~~~~
+
+* Updates to MANIFEST.ini file to ensure package builds properly [pigeonflight]
+
 1.0b1 (25/11/2014)
 ~~~~~~~~~~~~~~~~~~
 
