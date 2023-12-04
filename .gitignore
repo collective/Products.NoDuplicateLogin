@@ -5,3 +5,10 @@ dist
 *.swp
 .swo
 .DS_Store
+# virtualenv:
+bin/
+include/
+lib/
+lib64
+.restore-env.sh
+pyvenv.cfg

@@ -5,10 +5,11 @@ def read(filename):
     return open(filename, 'rb').read()
 
 setup(
-    version='1.0b1',
+    version='2.0',
     name='Products.NoDuplicateLogin',
     description='Products.NoDuplicateLogin',
     long_description=read('README.txt') + read('docs/HISTORY.txt'),
+    long_description_content_type='text/x-rst',
     author='Daniel Nouri',
     author_email='daniel.nouri@gmail.com',
     url='http://svn.plone.org/svn/collective/PASPlugins/Products.NoDuplicateLogin',

@@ -2,6 +2,7 @@ recursive-include Products *
 recursive-include docs *
 
 global-exclude *pyc
+global-exclude .*.swp
 
 global-include *.mo
 global-include CHANGES.txt
