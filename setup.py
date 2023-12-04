@@ -9,6 +9,7 @@ setup(
     name='Products.NoDuplicateLogin',
     description='Products.NoDuplicateLogin',
     long_description=read('README.txt') + read('docs/HISTORY.txt'),
+    long_description_content_type='text/x-rst',
     author='Daniel Nouri',
     author_email='daniel.nouri@gmail.com',
     project_urls={
