@@ -7,6 +7,17 @@ Development
 
 * Updates to MANIFEST.ini file to ensure package builds properly [pigeonflight]
 
+
+2.0 (2014-11-25)
+~~~~~~~~~~~~~~~~
+
+* Security and performance improvements [matthewwilkes]
+* Remove reimplementation of plone.session [matthewwilkes]
+* Change internal data structures to avoid unnecessary object stores [matthewwilkes]
+* Add tests to test harness [matthewwilkes]
+* Fix pure Zope compatibility [matthewwilkes]
+
+
 1.0b1 (25/11/2014)
 ~~~~~~~~~~~~~~~~~~
 
