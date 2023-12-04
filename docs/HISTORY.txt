@@ -2,10 +2,12 @@
 History
 -------
 
-Development
-~~~~~~~~~~~
 
-* Updates to MANIFEST.ini file to ensure package builds properly [pigeonflight]
+2.0.1 (2023-12-04)
+~~~~~~~~~~~~~~~~~~
+
+* Packaging bugfix: The plugin can't be added, due to missing add template
+  [pigeonflight]
 
 
 2.0 (2014-11-25)
