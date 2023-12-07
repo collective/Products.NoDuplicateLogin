@@ -8,9 +8,9 @@ setup(
     version='2.0.1',
     name='Products.NoDuplicateLogin',
     description='Products.NoDuplicateLogin',
-    long_description=read('README.txt')
+    long_description=read('README.rst')
                    + read('docs/CONTRIBUTING.rst')
-                   + read('docs/HISTORY.txt'),
+                   + read('docs/HISTORY.rst'),
     long_description_content_type='text/x-rst',
     author='Daniel Nouri',
     author_email='daniel.nouri@gmail.com',
