@@ -5,6 +5,7 @@ dist
 *.swp
 .swo
 .DS_Store
+
 # virtualenv:
 .restore-env.sh
 bin/
@@ -12,3 +13,17 @@ include/
 lib/
 lib64/
 pyvenv.cfg
+
+# buildout:
+.installed.cfg
+parts/
+develop-eggs/
+
+# Subversion:
+.svn/
+
+# visaplan:
+auto.msg
+tools/
+update-module
+CHANGES-in-*.rst
