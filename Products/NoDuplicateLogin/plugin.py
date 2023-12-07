@@ -112,7 +112,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         self._uuid_to_userid = OOBTree()  # uuid.uuid4().hex : userid
 
     security.declarePrivate('authenticateCredentials')
-
     def authenticateCredentials(self, credentials):
         """See IAuthenticationPlugin.
 
@@ -199,10 +198,8 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             del self._uuid_to_time[uuid]
         if uuid is not None:
             del self._uuid_to_userid[uuid]
-        
-    
-    security.declarePrivate('resetCredentials')
 
+    security.declarePrivate('resetCredentials')
     def resetCredentials(self, request, response):
         """See ICredentialsResetPlugin.
         """
@@ -223,7 +220,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         self.setCookie('')
 
     security.declarePrivate('resetAllCredentials')
-
     def resetAllCredentials(self, request, response):
         """Call resetCredentials of all plugins.
 
@@ -279,7 +275,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         return unquote(cookie)
 
     security.declarePrivate('setCookie')
-
     def setCookie(self, value, response=None):
         """Helper to set the cookie value to either cookie or
         session, depending on policy.
@@ -297,7 +292,6 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             response.expireCookie(self.cookie_name, path='/')
 
     security.declareProtected(Permissions.manage_users, 'cleanUp')
-
     def cleanUp(self):
         """Clean up storage.
 
