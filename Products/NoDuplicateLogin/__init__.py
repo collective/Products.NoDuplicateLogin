@@ -29,18 +29,27 @@
 """NoDuplicateLogin
 """
 
+# Python compatibility:
+from __future__ import absolute_import
+
 __author__ = "Daniel Nouri <daniel.nouri@gmail.com>"
 
+# Zope:
 from AccessControl.Permissions import add_user_folders
 from Products.PluggableAuthService import registerMultiPlugin
-from plugin import NoDuplicateLogin, \
-                   manage_addNoDuplicateLogin, \
-                   manage_addNoDuplicateLoginForm
+
+# Local imports:
+from .plugin import (
+    NoDuplicateLogin,
+    manage_addNoDuplicateLogin,
+    manage_addNoDuplicateLoginForm,
+    )
+
 
 def initialize(context):
     """Initialize the NoDuplicateLogin plugin."""
     registerMultiPlugin(NoDuplicateLogin.meta_type)
-    
+
     context.registerClass(NoDuplicateLogin,
                           permission=add_user_folders,
                           constructors=(manage_addNoDuplicateLoginForm,

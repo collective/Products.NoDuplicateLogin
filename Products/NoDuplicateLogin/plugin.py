@@ -29,32 +29,45 @@
 """NoDuplicateLogin plugin
 """
 
+# Python compatibility:
+from __future__ import absolute_import
+
 __author__ = "Daniel Nouri <daniel.nouri@gmail.com>"
 
+# Standard library:
+import time
+import uuid
+
+# Zope:
 from AccessControl import ClassSecurityInfo, Permissions
+from Globals import InitializeClass
+from OFS.Cache import Cacheable
+from Products.PageTemplates.PageTemplateFile import PageTemplateFile
+from Products.PluggableAuthService.interfaces.plugins import (
+    IAuthenticationPlugin,
+    ICredentialsResetPlugin,
+    ICredentialsUpdatePlugin,
+    )
+from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
+from Products.PluggableAuthService.utils import classImplements
+
+# Plone:
+from Products.CMFPlone import PloneMessageFactory as _
+
+# 3rd party:
+from BTrees.OLBTree import OLBTree
 #from BTrees.LLBTree import LLBTree
 #from BTrees.LOBTree import LOBTree
 from BTrees.OOBTree import OOBTree
-from BTrees.OLBTree import OLBTree
-import time
-import uuid
-from Globals import InitializeClass
-from OFS.Cache import Cacheable
-from Products.CMFPlone import PloneMessageFactory as _
-from Products.PageTemplates.PageTemplateFile import PageTemplateFile
-from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
-from Products.PluggableAuthService.utils import classImplements
-from Products.PluggableAuthService.interfaces.plugins \
-     import IAuthenticationPlugin, ICredentialsResetPlugin, ICredentialsUpdatePlugin
-
 
 try:
+    # Zope:
     from Products.statusmessages.interfaces import IStatusMessage
 except:
     IStatusMessage = NotImplemented
 
-from urllib import quote, unquote
-
+# Python compatibility:
+from six.moves.urllib.parse import quote, unquote
 
 DAYS = 60 * 60 * 24
 
@@ -137,14 +150,14 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                     if uid_and_info is None:
                         continue
                     user_id, info = uid_and_info
-                except StandardError:
+                except Exception:
                     # We squelch all errors here, they'll be re-raised by the plugin itself
                     # if appropriate
                     continue
                 login = user_id
 
         cookie_val = self.getCookie()
-        
+
         if cookie_val:
             # A cookie value is there.  If it's the same as the value
             # in our mapping, it's fine.  Otherwise we'll force a
@@ -182,18 +195,18 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             # When no cookie is present, we generate one, store it and
             # set it in the response
             self.updateCredentials(self.REQUEST, self.REQUEST.RESPONSE, login, credentials.get("password"))
-            
+
         return None  # Note that we never return anything useful
 
     security.declarePrivate('logUserOut')
     def logUserOut(self, login):
         """ Change the unique authorisation code for a user, causing them to become logged out """
-        
+
         uuid = self._userid_to_uuid.get(login)
         date = self._uuid_to_time.get(uuid)
-        
+
         self._userid_to_uuid[login] = 'FORCED_LOGOUT'
-        
+
         if date is not None:
             del self._uuid_to_time[uuid]
         if uuid is not None:
@@ -255,7 +268,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                     del self._uuid_to_userid[existing_uid]
                 if existing_uid in self._uuid_to_time:
                     del self._uuid_to_time[existing_uid]
-            
+
             # Get the current time as seconds since 1970, as it's int-ey and likes BTrees
             now = int(time.time())
             self._userid_to_uuid[login] = cookie_val
@@ -263,7 +276,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
             self._uuid_to_userid[cookie_val] = login
             # Set the new cookie into the response
             self.setCookie(cookie_val, response=response)
-        
+
 
     security.declarePrivate('getCookie')
     def getCookie(self):
@@ -298,7 +311,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
         Call this periodically through the web to clean up old entries
         in the storage."""
         count = 0
-        
+
         expiry = int(time.time()) - self.time_to_delete_cookies
 
         for u, t in self._uuid_to_time.items():
@@ -308,7 +321,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
                 del self._uuid_to_userid[u]
                 if login:
                     del self._userid_to_uuid[login]
-                
+
         return "%s entries deleted." % count
 
 classImplements(NoDuplicateLogin,
