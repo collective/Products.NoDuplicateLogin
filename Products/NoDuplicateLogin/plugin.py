@@ -316,6 +316,7 @@ class NoDuplicateLogin(BasePlugin, Cacheable):
 
         for u, t in self._uuid_to_time.items():
             if t < expiry:
+                count += 1
                 login = self._uuid_to_userid.get(u)
                 del self._uuid_to_time[u]
                 del self._uuid_to_userid[u]
