@@ -2,6 +2,12 @@
 History
 -------
 
+3.0.0 (unreleased)
+~~~~~~~~~~~~~~~~~~
+
+* Python 3 compatibility, using six_ [tobiasherp]
+* Fix issue9_, The cleanUp method always reports 0 deleted entries [tobiasherp]
+
 
 2.0.1 (2023-12-04)
 ~~~~~~~~~~~~~~~~~~
@@ -46,3 +52,6 @@ History
 
 * Plone 3 compat [perrito]
 * Original implementation [nouri]
+
+.. _issue9: https://github.com/collective/Products.NoDuplicateLogin/issues/9
+.. _six: https://pypi.org/project/six/
